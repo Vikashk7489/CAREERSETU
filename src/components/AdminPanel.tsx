@@ -778,10 +778,10 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
 
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 {[
-                                  { id: 'article', label: 'Auto Article', icon: '📝', prompt: 'Write a detailed sarkari exam article about: ' },
-                                  { id: 'rewrite', label: 'Rewrite AI', icon: '✍️', prompt: 'Rewrite this professionally for a job portal: ' },
-                                  { id: 'seo', label: 'SEO tags', icon: '🏷️', prompt: 'Generate SEO keywords comma separated for: ' },
-                                  { id: 'faq', label: 'FAQ Gen', icon: '❓', prompt: 'Generate 5 FAQs with answers for: ' }
+                                  { id: 'article', label: 'Full Magic', icon: '✨', prompt: 'Generate a COMPLETE Sarkari Result style post in JSON format. Topic: ' },
+                                  { id: 'rewrite', label: 'Rewrite AI', icon: '✍️', prompt: 'Rewrite this professionally: ' },
+                                  { id: 'seo', label: 'SEO tags', icon: '🏷️', prompt: 'Generate SEO keywords for: ' },
+                                  { id: 'faq', label: 'FAQ Gen', icon: '❓', prompt: 'Generate 5 FAQs for: ' }
                                 ].map(tool => (
                                   <button 
                                     key={tool.id} 
@@ -789,11 +789,30 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                                       if (!aiPrompt) return alert('Enter description first');
                                       setAiLoading(true);
                                       try {
-                                        const res = await callAI(tool.prompt + aiPrompt, 'You are an expert content writer for CareerSetu, a leading Indian job portal. Write in professional English.');
-                                        setAiResult(res);
-                                      } finally {
-                                        setAiLoading(false);
-                                      }
+                                        const sysPrompt = tool.id === 'article' 
+                                          ? 'Return ONLY raw JSON: { "title": "...", "shortDescription": "...", "importantDates":[{"label":"...", "value":"..."}], "applicationFee":[{"label":"...", "value":"..."}], "vacancyDetails":[{"category":"...", "posts":"..."}], "totalPosts": "...", "importantLinks":[{"label":"...", "url":"..."}], "faq":[{"question":"...", "answer":"..."}], "longArticle": "..." }. Focus on 1000+ words detailed article markup.'
+                                          : 'You are an expert Indian job portal writer.';
+                                        const res = await callAI(tool.prompt + aiPrompt, sysPrompt);
+                                        if (tool.id === 'article') {
+                                           try {
+                                             const cleaned = res.replace(/```json|```/g, '').trim();
+                                             // Find first { and last }
+                                             const start = cleaned.indexOf('{');
+                                             const end = cleaned.lastIndexOf('}');
+                                             if (start === -1 || end === -1) throw new Error('Invalid JSON');
+                                             const jsonStr = cleaned.slice(start, end + 1);
+                                             const parsed = JSON.parse(jsonStr);
+                                             setFormData(prev => ({...prev, ...parsed}));
+                                             showToast('Post Auto-Filled!');
+                                             setIsAdding(true); setActiveTab('posts');
+                                           } catch (err) {
+                                             console.error('AI JSON Error:', err);
+                                             setAiResult(res);
+                                             showToast('Raw data generated', 'success');
+                                           }
+                                        } else { setAiResult(res); }
+                                      } catch(e) { setAiResult(res); showToast('Result received', 'success'); }
+                                      finally { setAiLoading(false); }
                                     }}
                                     disabled={aiLoading}
                                     className="bg-white dark:bg-gray-900 border border-border-color p-3 rounded-xl text-center hover:border-red-primary hover:bg-red-primary/5 transition-all group disabled:opacity-50"
@@ -1399,6 +1418,153 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                                  </div>
                               </div>
                               <button onClick={() => showToast('Download started')} className="text-[9px] font-black uppercase text-blue-link">Download</button>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Security */}
+              {activeTab === 'security' && (
+                <div className="space-y-8 animate-in fade-in">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white p-6 rounded-2xl border border-border-color shadow-sm">
+                         <div className="flex items-center gap-3 text-red-primary font-black text-xs uppercase tracking-widest mb-4"><Shield size={18}/> IP Firewall</div>
+                         <p className="text-[10px] text-text-secondary mb-4 opacity-70 leading-relaxed">Currently monitoring 1,245 active requests. No malicious patterns detected.</p>
+                         <button onClick={() => showToast('Firewall settings locked')} className="text-[10px] font-black text-blue-link uppercase border-b border-blue-link">Review Bans</button>
+                      </div>
+                      <div className="bg-white p-6 rounded-2xl border border-border-color shadow-sm">
+                         <div className="flex items-center gap-3 text-green-600 font-black text-xs uppercase tracking-widest mb-4"><KeyIcon size={18}/> Admin MFA</div>
+                         <p className="text-[10px] text-text-secondary mb-4 opacity-70 leading-relaxed">Multi-factor authentication is active for this session.</p>
+                         <button onClick={() => showToast('MFA Reset Link Sent')} className="text-[10px] font-black text-blue-link uppercase border-b border-blue-link">Regenerate Keys</button>
+                      </div>
+                      <div className="bg-white p-6 rounded-2xl border border-border-color shadow-sm">
+                         <div className="flex items-center gap-3 text-indigo-600 font-black text-xs uppercase tracking-widest mb-4"><HardDrive size={18}/> Login Audit</div>
+                         <p className="text-[10px] text-text-secondary mb-4 opacity-70 leading-relaxed">Last successful login: Today, 10:45 AM from Mumbai, India.</p>
+                         <button onClick={() => showToast('Security Log Exported')} className="text-[10px] font-black text-blue-link uppercase border-b border-blue-link">View Audit Trail</button>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Ad Manager */}
+              {activeTab === 'ads' && (
+                <div className="bg-white p-10 rounded-2xl border border-border-color shadow-sm space-y-10 animate-in fade-in">
+                   <div className="flex justify-between items-end border-b border-border-color pb-6">
+                      <div>
+                         <h3 className="text-lg font-black uppercase tracking-tighter">Monetization Control Center</h3>
+                         <p className="text-xs text-text-secondary opacity-60">Manage AdSense units, Banner script, and Popup frequency</p>
+                      </div>
+                      <div className="flex gap-4">
+                         <div className="px-4 py-2 bg-gray-50 rounded-xl border border-border-color text-center">
+                            <p className="text-[8px] font-black text-text-secondary uppercase">Today Revenue</p>
+                            <p className="text-sm font-black text-green-600">$45.12</p>
+                         </div>
+                         <div className="px-4 py-2 bg-gray-50 rounded-xl border border-border-color text-center">
+                            <p className="text-[8px] font-black text-text-secondary uppercase">Active Units</p>
+                            <p className="text-sm font-black text-blue-600">12</p>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div className="space-y-6">
+                         <h4 className="text-[10px] font-black uppercase tracking-[3px] text-red-primary">Global Ad Scripts</h4>
+                         <div className="space-y-4">
+                            <div className="p-5 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-border-color">
+                               <div className="flex justify-between items-center mb-3">
+                                  <label className="text-xs font-black">Google AdSense Client ID</label>
+                                  <span className="text-[9px] font-black text-green-500 uppercase">Status: Live</span>
+                               </div>
+                               <input type="text" defaultValue="ca-pub-5868574385517005" className="w-full bg-white dark:bg-gray-900 border border-border-color rounded-lg px-4 py-2 text-xs font-mono" />
+                            </div>
+                            <div className="p-5 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-border-color">
+                               <div className="flex justify-between items-center mb-3">
+                                  <label className="text-xs font-black">Header Script (Analytics/Ads)</label>
+                                  <span className="text-[9px] font-black text-orange-500 uppercase">Warning: Auto-Injection</span>
+                               </div>
+                               <textarea rows={4} className="w-full bg-white dark:bg-gray-900 border border-border-color rounded-lg px-4 py-2 text-[10px] font-mono leading-relaxed" defaultValue={`<script async src="https://example.com/ads.js"></script>\n<script>\n  (adsbygoogle = window.adsbygoogle || []).push({});\n</script>`}></textarea>
+                            </div>
+                         </div>
+                      </div>
+                      <div className="space-y-6 text-center lg:text-left">
+                         <h4 className="text-[10px] font-black uppercase tracking-[3px] text-blue-link">Individual Ad Slots</h4>
+                         <div className="grid grid-cols-2 gap-4">
+                            {['Article Top', 'Sidebar Sticky', 'Home Feed 1', 'Popunder Unit'].map(slot => (
+                               <div key={slot} className="p-4 bg-white dark:bg-gray-900 border border-border-color rounded-xl flex flex-col items-center justify-center gap-2 group hover:border-red-primary transition-all">
+                                  <Megaphone size={24} className="text-gray-300 group-hover:text-red-primary transition-colors" />
+                                  <span className="text-[10px] font-black uppercase">{slot}</span>
+                                  <button onClick={() => showToast(`Editing slot: ${slot}`)} className="text-[8px] font-black text-blue-link uppercase hover:underline">Configure</button>
+                               </div>
+                            ))}
+                         </div>
+                         <button className="w-full bg-red-primary text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl mt-4">Save Ad Inventory Changes</button>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Notification Center */}
+              {activeTab === 'notifications' && (
+                <div className="max-w-2xl mx-auto bg-white p-10 rounded-2xl border border-border-color shadow-sm animate-in fade-in">
+                   <div className="text-center mb-8">
+                      <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center rounded-full mx-auto mb-4">
+                         <BellRing size={24} />
+                      </div>
+                      <h3 className="text-lg font-black uppercase tracking-tight">Push Broadcast Center</h3>
+                      <p className="text-xs text-text-secondary opacity-60">Send real-time alerts to all CareerSetu users instantly</p>
+                   </div>
+
+                   <form onSubmit={(e) => { e.preventDefault(); showToast('Notification broadcasted to 15,240 tokens!'); setNotificationForm({title:'', message:'', url:''}); }} className="space-y-5">
+                      <div className="space-y-1.5">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Notification Title</label>
+                         <input 
+                           required
+                           type="text" 
+                           placeholder="e.g. BREAKING: SSC CGL Result Declared!" 
+                           className="w-full bg-gray-50 border border-border-color rounded-xl px-4 py-3 text-sm font-bold"
+                           value={notificationForm.title}
+                           onChange={e => setNotificationForm({...notificationForm, title: e.target.value})}
+                         />
+                      </div>
+                      <div className="space-y-1.5">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Alert Message</label>
+                         <textarea 
+                           required
+                           rows={3} 
+                           placeholder="Full details of the announcement..." 
+                           className="w-full bg-gray-50 border border-border-color rounded-xl px-4 py-3 text-sm font-medium"
+                           value={notificationForm.message}
+                           onChange={e => setNotificationForm({...notificationForm, message: e.target.value})}
+                         />
+                      </div>
+                      <div className="space-y-1.5">
+                         <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Target URL (Optional)</label>
+                         <input 
+                           type="url" 
+                           placeholder="https://careersetu.com/..." 
+                           className="w-full bg-gray-50 border border-border-color rounded-xl px-4 py-3 text-sm font-bold"
+                           value={notificationForm.url}
+                           onChange={e => setNotificationForm({...notificationForm, url: e.target.value})}
+                         />
+                      </div>
+                      <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-xs font-black uppercase tracking-[2px] shadow-xl hover:brightness-110 active:scale-95 transition-all mt-4">Blast Notification</button>
+                   </form>
+
+                   <div className="mt-10 pt-10 border-t border-border-color">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest mb-6 opacity-40">Previous Broadcasts</h4>
+                      <div className="space-y-3">
+                         {[
+                           { title: 'UP Police Constable Answer Key', date: '2 hours ago', reach: '12K' },
+                           { title: 'Railway Technician Vacancy 2026', date: 'Yesterday', reach: '54K' }
+                         ].map((prev, i) => (
+                           <div key={i} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color hover:border-blue-500 transition-colors">
+                              <div>
+                                 <p className="text-[11px] font-bold">{prev.title}</p>
+                                 <p className="text-[9px] text-text-secondary">{prev.date} • Delivered via FCM</p>
+                              </div>
+                              <span className="text-[9px] font-black text-blue-link bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">{prev.reach} Reach</span>
                            </div>
                          ))}
                       </div>

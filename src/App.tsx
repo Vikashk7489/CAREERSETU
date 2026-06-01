@@ -47,6 +47,7 @@ import {
   getDocs,
   writeBatch
 } from 'firebase/firestore';
+import ReactMarkdown from 'react-markdown';
 import { supabase } from './supabase';
 
 type Page = 'home' | 'jobs' | 'results' | 'admitcard' | 'answerkey' | 'syllabus' | 'notifications' | 'contact' | 'bookmarks' | 'about' | 'privacy' | 'terms' | 'disclaimer' | 'detail' | 'admin';
@@ -1037,27 +1038,39 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                   </table>
                 </div>
 
-                {/* Main Content Area (Custom Text from Admin) */}
-                {item.content && (
-                  <div className="bg-gray-50 dark:bg-gray-800/20 p-6 rounded-lg border border-border-color/30 whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">
-                    {item.content}
+                {/* Long Article / Content */}
+                {(item.longArticle || item.content) && (
+                  <div className="bg-white dark:bg-gray-900 p-6 md:p-10 rounded-lg border border-border-color shadow-sm">
+                    <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none text-justify markdown-body">
+                      {item.longArticle ? (
+                        <ReactMarkdown>{item.longArticle}</ReactMarkdown>
+                      ) : (
+                        <div className="whitespace-pre-wrap">{item.content}</div>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {/* How to Fill Section */}
-                <div className="overflow-hidden border-2 border-blue-900 rounded-lg text-[var(--text-primary)]">
-                  <div className="bg-blue-900 text-white text-center py-2 font-bold uppercase text-sm">
-                    How To Fill {item.title.split(' ')[0]} Online Form 2026
+                {/* FAQ Section */}
+                {item.faq && item.faq.length > 0 && (
+                  <div className="overflow-hidden border-2 border-orange-500 rounded-lg text-[var(--text-primary)] shadow-sm">
+                    <div className="bg-orange-500 text-white text-center py-2 font-bold uppercase text-sm flex items-center justify-center gap-2">
+                       <Key size={18} /> Frequently Asked Questions (FAQ)
+                    </div>
+                    <div className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                      {item.faq.map((f: any, idx: number) => (
+                        <div key={idx} className="p-4 space-y-2">
+                          <h4 className="text-[13px] font-black text-red-primary flex gap-2">
+                            <span className="opacity-40">Q.</span> {f.question}
+                          </h4>
+                          <p className="text-[12px] font-semibold text-text-secondary pl-5 leading-relaxed">
+                            <span className="opacity-40 font-black mr-2">ANS.</span> {f.answer}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="p-4 text-[12px] space-y-3 font-semibold leading-relaxed">
-                    <p>• Candidates Who Wish To Apply For The <strong>{item.title.split(' ')[0]}</strong> Post Can Submit Their Application Online Before the deadline.</p>
-                    <p>• Use The Click Here Link Provided Below Under Important Link Section To Apply Directly.</p>
-                    <p>• Alternatively, Visit The <strong>Official Website</strong> To Complete The Application Process Online.</p>
-                    <p>• Make Sure To Complete The Application Before The Deadline.</p>
-                    <p className="text-red-primary font-bold">• Note – छात्रों से ये अनुरोध किया जाता है की वो अपना फॉर्म भरने से पहले Official Notification को ध्यान से जरूर पढ़े उसके बाद ही अपना फॉर्म भरे।</p>
-                    <p>• Take A Print Out of Final Submitted Form.</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Important Links Section */}
                 <div className="overflow-hidden border-2 border-red-primary rounded-lg shadow-sm text-[var(--text-primary)]">
