@@ -46,7 +46,6 @@ import {
   Newspaper,
   Palette,
   ShieldCheck,
-  Save,
   Clock,
   ExternalLink,
   ChevronRight,
@@ -78,7 +77,7 @@ const ADMIN_PASS = 'admin@careersetu';
 
 export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('cs_admin_session') === 'active');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'categories' | 'seo' | 'ai' | 'ads' | 'settings' | 'home-builder' | 'media' | 'analytics' | 'contacts' | 'notifications' | 'security' | 'maintenance' | 'faqs' | 'backups'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'categories' | 'seo' | 'ai' | 'ads' | 'settings' | 'home-builder' | 'media' | 'analytics' | 'contacts' | 'notifications' | 'security' | 'maintenance' | 'faqs' | 'backups' | 'newsletter'>('dashboard');
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<any | null>(null);
@@ -155,7 +154,16 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'posts' },
-        () => fetchPosts()
+        (payload: any) => {
+          console.log('Admin Real-time update:', payload);
+          if (payload.eventType === 'INSERT') {
+            setPosts((prev) => [payload.new, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+          } else if (payload.eventType === 'UPDATE') {
+            setPosts((prev) => prev.map(p => p.id === payload.new.id ? payload.new : p));
+          } else if (payload.eventType === 'DELETE') {
+            setPosts((prev) => prev.filter(p => p.id !== payload.old.id));
+          }
+        }
       )
       .subscribe();
 
@@ -739,7 +747,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        {(activeTab === 'ai' || activeTab === 'categories' || activeTab === 'seo' || activeTab === 'ads' || activeTab === 'settings') && (
+        {['ai', 'categories', 'seo', 'ads', 'settings', 'newsletter', 'home-builder', 'media', 'analytics', 'contacts', 'notifications', 'security', 'faqs', 'backups', 'maintenance'].includes(activeTab) && (
            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {/* Module: AI Center */}
               {activeTab === 'ai' && (
@@ -790,8 +798,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                                       setAiLoading(true);
                                       try {
                                         const sysPrompt = tool.id === 'article' 
-                                          ? 'Return ONLY raw JSON: { "title": "...", "shortDescription": "...", "importantDates":[{"label":"...", "value":"..."}], "applicationFee":[{"label":"...", "value":"..."}], "vacancyDetails":[{"category":"...", "posts":"..."}], "totalPosts": "...", "importantLinks":[{"label":"...", "url":"..."}], "faq":[{"question":"...", "answer":"..."}], "longArticle": "..." }. Focus on 1000+ words detailed article markup.'
-                                          : 'You are an expert Indian job portal writer.';
+                                          ? 'Return ONLY raw JSON: { "title": "...", "shortDescription": "...", "importantDates":[{"label":"...", "value":"..."}], "applicationFee":[{"label":"...", "value":"..."}], "vacancyDetails":[{"category":"...", "posts":"..."}], "totalPosts": "...", "importantLinks":[{"label":"...", "url":"..."}], "faq":[{"question":"...", "answer":"..."}], "longArticle": "..." }. The longArticle field MUST be a 1500+ word detailed Markdown article covering Intro, Detailed Eligibility, Step-by-Step Application Process, Exam Pattern, and Salary info. Use clean heading structures.'
+                                          : 'You are an expert Indian job portal content creator. Write in professional, clear English.';
                                         const res = await callAI(tool.prompt + aiPrompt, sysPrompt);
                                         if (tool.id === 'article') {
                                            try {
@@ -811,7 +819,10 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                                              showToast('Raw data generated', 'success');
                                            }
                                         } else { setAiResult(res); }
-                                      } catch(e) { setAiResult(res); showToast('Result received', 'success'); }
+                                      } catch(e: any) { 
+                                        console.error('AI Processing Error:', e);
+                                        showToast(e.message || 'AI Generation Failed', 'error'); 
+                                      }
                                       finally { setAiLoading(false); }
                                     }}
                                     disabled={aiLoading}

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { allData, tickerItems, quickLinks, categoryMap, JobItem } from './data';
 
+import AdSense from './components/AdSense.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import { 
   collection, 
@@ -52,43 +53,6 @@ import { supabase } from './supabase';
 
 type Page = 'home' | 'jobs' | 'results' | 'admitcard' | 'answerkey' | 'syllabus' | 'notifications' | 'contact' | 'bookmarks' | 'about' | 'privacy' | 'terms' | 'disclaimer' | 'detail' | 'admin';
 
-const ScriptAdBanner = ({ type }: { type?: 'mobile' | 'desktop' }) => {
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    if (containerRef.current && !containerRef.current.querySelector('iframe')) {
-      const isMobile = window.innerWidth < 768;
-      const key = isMobile ? 'af3a0f42870899e50e6b0b00bd20358f' : '9d198a72d47a984cde7ece74d4b49f0b';
-      const format = isMobile ? 'iframe' : 'iframe';
-      const height = isMobile ? 60 : 90;
-      const width = isMobile ? 468 : 728;
-
-      const conf = document.createElement('script');
-      conf.innerHTML = `
-        atOptions = {
-          'key' : '${key}',
-          'format' : '${format}',
-          'height' : ${height},
-          'width' : ${width},
-          'params' : {}
-        };
-      `;
-      const script = document.createElement('script');
-      script.src = `https://www.highperformanceformat.com/${key}/invoke.js`;
-      
-      containerRef.current.appendChild(conf);
-      containerRef.current.appendChild(script);
-    }
-  }, []);
-
-  return (
-    <div 
-      ref={containerRef} 
-      className={`flex justify-center my-4 overflow-hidden bg-gray-50/50 dark:bg-gray-800/10 rounded border border-dashed border-border-color/20 ${type === 'mobile' ? 'max-w-[320px] mx-auto' : 'w-full'}`} 
-      style={{ minHeight: window.innerWidth < 768 ? '60px' : '90px' }}
-    />
-  );
-};
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -148,7 +112,7 @@ export default function App() {
 
     fetchPosts();
 
-    // Set up real-time subscription
+    // Set up efficient real-time subscription with delta updates
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -158,8 +122,20 @@ export default function App() {
           schema: 'public',
           table: 'posts'
         },
-        () => {
-          fetchPosts();
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            setLivePosts((prev) => [payload.new as JobItem, ...prev].sort((a, b) => 
+              new Date(b.date).getTime() - new Date(a.date).getTime()
+            ));
+          } else if (payload.eventType === 'UPDATE') {
+            setLivePosts((prev) => prev.map((post) => 
+              post.id === payload.new.id ? { ...post, ...payload.new } : post
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setLivePosts((prev) => prev.filter((post) => post.id !== payload.old.id));
+          }
         }
       )
       .subscribe();
@@ -434,18 +410,8 @@ export default function App() {
               </div>
 
               {/* Ad Slot (Home Top) */}
-              <div className="mb-4 bg-transparent text-center space-y-2">
-                <ScriptAdBanner />
-                <div className="flex justify-center gap-2">
-                   <ScriptAdBanner type="mobile" />
-                   <ScriptAdBanner type="mobile" />
-                </div>
-                <ins className="adsbygoogle"
-                     style={{ display: 'block' }}
-                     data-ad-client="ca-pub-5868574385517005"
-                     data-ad-slot="6696255538"
-                     data-ad-format="auto"
-                     data-full-width-responsive="true"></ins>
+              <div className="mb-4">
+                <AdSense slot="8558634569" className="min-h-[250px]" />
               </div>
 
               {/* Sections */}
@@ -462,7 +428,7 @@ export default function App() {
                     />
                     {idx % 1 === 0 && (
                       <div className="my-2 border border-border-color/5 overflow-hidden">
-                        <ScriptAdBanner />
+                        <AdSense slot="8558634569" className="min-h-[100px]" />
                       </div>
                     )}
                   </React.Fragment>
@@ -507,7 +473,7 @@ export default function App() {
             />
           )}
 
-          {currentPage === 'admin' && <AdminPanel onBack={() => navigateTo('home')} />}
+          {(currentPage as string) === 'admin' && <AdminPanel onBack={() => navigateTo('home')} />}
 
           {['about','privacy','terms','disclaimer'].includes(currentPage) && (
              <InfoPage type={currentPage} onBack={() => navigateTo('home')} />
@@ -517,13 +483,7 @@ export default function App() {
         {/* Sidebar */}
         <aside className="space-y-6">
           {/* Ad unit (Sidebar Top) */}
-          <div className="bg-white dark:bg-gray-900 border border-border-color p-2 rounded-lg text-center">
-            <ScriptAdBanner />
-            <div className="flex justify-center gap-1 mt-1">
-              <ScriptAdBanner type="mobile" />
-              <ScriptAdBanner type="mobile" />
-            </div>
-          </div>
+          <AdSense slot="8558634569" format="fluid" />
 
           {/* Sidebar Widget: Trending */}
           <SidebarWidget title="🔥 Trending / ट्रेंडिंग">
@@ -542,14 +502,7 @@ export default function App() {
           </SidebarWidget>
 
           {/* Sidebar Ad unit */}
-          <div className="bg-transparent text-center">
-            <ins className="adsbygoogle"
-                 style={{ display: 'block' }}
-                 data-ad-client="ca-pub-5868574385517005"
-                 data-ad-slot="6696255538"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-          </div>
+          <AdSense slot="8558634569" />
 
           <SidebarWidget title="📂 Categories / श्रेणियां">
             <ul className="divide-y divide-border-color">
@@ -582,7 +535,7 @@ export default function App() {
           <div className="sticky top-20 space-y-4">
              <div className="bg-white dark:bg-gray-900 border border-border-color p-2 rounded-lg text-center shadow-md">
                <p className="text-[8px] uppercase font-bold text-gray-400 mb-1">Sponsored</p>
-               <ScriptAdBanner />
+               <AdSense slot="8558634569" format="fluid" />
              </div>
              <div className="bg-blue-600 text-white p-4 rounded-xl shadow-lg">
                <h4 className="text-xs font-bold uppercase mb-2">🚀 Free Job Alert</h4>
@@ -891,6 +844,7 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
 
         <div className="p-4 md:p-6 space-y-8">
             {/* Join Buttons (Prominent) */}
+            <AdSense slot="8558634569" className="min-h-[250px]" />
             <div className="grid grid-cols-2 gap-3">
               <a href="https://whatsapp.com/channel/0029Vb86tg3D38CMUPve8U0a" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#25D366] text-white py-2 rounded font-bold text-xs shadow-sm hover:brightness-105 transition-all">
                 <MessageCircle size={16} /> WhatsApp
@@ -917,11 +871,7 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
 
             {/* Ad Slot */}
             <div className="bg-transparent text-center space-y-2">
-              <ScriptAdBanner />
-              <div className="flex justify-center gap-2">
-                <ScriptAdBanner type="mobile" />
-                <ScriptAdBanner type="mobile" />
-              </div>
+              <AdSense slot="8558634569" format="fluid" />
             </div>
 
             <div className="prose prose-sm dark:prose-invert max-w-none space-y-8">
@@ -1051,7 +1001,8 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                   </div>
                 )}
 
-                {/* FAQ Section */}
+                {/* Frequently Asked Questions (FAQ) */}
+                <AdSense slot="8558634569" />
                 {item.faq && item.faq.length > 0 && (
                   <div className="overflow-hidden border-2 border-orange-500 rounded-lg text-[var(--text-primary)] shadow-sm">
                     <div className="bg-orange-500 text-white text-center py-2 font-bold uppercase text-sm flex items-center justify-center gap-2">

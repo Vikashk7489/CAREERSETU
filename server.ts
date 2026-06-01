@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenerativeAI } from '@google/generai';
+import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -12,24 +12,32 @@ async function startServer() {
 
   app.use(express.json());
 
+  const ai = new GoogleGenAI({ 
+    apiKey: process.env.GEMINI_API_KEY || '',
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+
   // Gemini API Route
   app.post('/api/ai/generate', async (req, res) => {
     try {
       const { prompt, systemPrompt } = req.body;
       if (!process.env.GEMINI_API_KEY) {
-        return res.status(500).json({ error: 'GEMINI_API_KEY is not configured' });
+        return res.status(500).json({ error: 'GEMINI_API_KEY is not configured in Secrets' });
       }
 
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
-        systemInstruction: systemPrompt
+      const response = await ai.models.generateContent({
+        model: 'gemini-flash-latest',
+        contents: prompt,
+        config: {
+          systemInstruction: systemPrompt || 'You are an expert Indian job portal writer.',
+        }
       });
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
+      const text = response.text || '';
       res.json({ text });
     } catch (error: any) {
       console.error('AI Generation Error:', error);
