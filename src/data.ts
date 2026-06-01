@@ -8,6 +8,12 @@ export interface JobItem {
     tags: string[];
     views: number;
     content?: string;
+    shortDescription?: string;
+    importantDates?: { label: string; value: string }[];
+    applicationFee?: { label: string; value: string }[];
+    vacancyDetails?: { category: string; posts: string }[];
+    importantLinks?: { label: string; url: string }[];
+    faq?: { question: string; answer: string }[];
 }
 
 export const allData: JobItem[] = [

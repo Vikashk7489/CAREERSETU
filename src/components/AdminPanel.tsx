@@ -1,26 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  getDocs, 
-  query, 
-  orderBy, 
-  onSnapshot,
-  Timestamp,
-  serverTimestamp
-} from 'firebase/firestore';
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut,
-  onAuthStateChanged,
-  User,
-  signInWithEmailAndPassword
-} from 'firebase/auth';
-import { db, auth } from '../firebase';
+import { supabase } from '../supabase';
+import { User } from '@supabase/supabase-js';
 import { JobItem, categoryMap } from '../data';
 import { 
   Plus, 
@@ -38,8 +18,6 @@ import {
   Key as KeyIcon,
   Eye
 } from 'lucide-react';
-
-const provider = new GoogleAuthProvider();
 
 export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [user, setUser] = useState<User | null>(null);
@@ -59,6 +37,12 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     title: '',
     category: 'jobs',
     content: '',
+    shortDescription: '',
+    importantDates: [] as { label: string, value: string }[],
+    applicationFee: [] as { label: string, value: string }[],
+    vacancyDetails: [] as { category: string, posts: string }[],
+    importantLinks: [] as { label: string, url: string }[],
+    faq: [] as { question: string, answer: string }[],
     isNew: true,
     isHot: false,
     tags: '',
@@ -66,41 +50,75 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   });
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      if (u) {
-        // Simple admin check based on email from request
-        if (u.email === 'kumarprince80970@gmail.com') {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        if (session.user.email === 'kumarprince80970@gmail.com') {
           setIsAdmin(true);
         } else {
-          // You could also check against an 'admins' collection here
-          setIsAdmin(true); 
+          setIsAdmin(false);
+        }
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        if (session.user.email === 'kumarprince80970@gmail.com') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
         }
       } else {
         setIsAdmin(false);
       }
     });
-    return () => unsub();
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     if (!isAdmin) return;
-    const q = query(collection(db, 'posts'), orderBy('date', 'desc'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPosts(data);
+    
+    const fetchPosts = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error("Supabase Fetch Error:", error);
+      } else if (data) {
+        setPosts(data);
+      }
       setLoading(false);
-    }, (err) => {
-      console.error("Firestore Error:", err);
-      setLoading(false);
-    });
-    return () => unsub();
+    };
+
+    fetchPosts();
+
+    // Set up real-time subscription for admin view
+    const channel = supabase
+      .channel('admin-posts-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts' },
+        () => fetchPosts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isAdmin]);
 
   const handleGoogleLogin = async () => {
     try {
       setLoginError(null);
-      await signInWithPopup(auth, provider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      if (error) throw error;
     } catch (err: any) {
       setLoginError(err.message);
       console.error("Google login failed:", err);
@@ -111,14 +129,20 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     e.preventDefault();
     try {
       setLoginError(null);
-      await signInWithEmailAndPassword(auth, loginData.email, loginData.password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginData.email,
+        password: loginData.password,
+      });
+      if (error) throw error;
     } catch (err: any) {
       setLoginError("Invalid email or password. Please try again.");
       console.error("Email login failed:", err);
     }
   };
 
-  const handleLogout = () => signOut(auth);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,15 +152,23 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       ...formData,
       tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
       views: editingPost ? editingPost.views : 0,
-      updatedAt: serverTimestamp(),
-      authorId: user?.uid
+      updated_at: new Date().toISOString(),
+      author_id: user?.id,
+      date: formData.date // Use the date from form
     };
 
     try {
       if (editingPost) {
-        await updateDoc(doc(db, 'posts', editingPost.id), payload);
+        const { error } = await supabase
+          .from('posts')
+          .update(payload)
+          .eq('id', editingPost.id);
+        if (error) throw error;
       } else {
-        await addDoc(collection(db, 'posts'), { ...payload, date: new Date().toISOString() });
+        const { error } = await supabase
+          .from('posts')
+          .insert([payload]);
+        if (error) throw error;
       }
       resetForm();
     } catch (err) {
@@ -144,10 +176,14 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string | number) => {
     if (!window.confirm("Are you sure?")) return;
     try {
-      await deleteDoc(doc(db, 'posts', id));
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
     } catch (err) {
       console.error("Delete failed:", err);
     }
@@ -160,6 +196,12 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       title: '',
       category: 'jobs',
       content: '',
+      shortDescription: '',
+      importantDates: [],
+      applicationFee: [],
+      vacancyDetails: [],
+      importantLinks: [],
+      faq: [],
       isNew: true,
       isHot: false,
       tags: '',
@@ -170,15 +212,22 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const startEdit = (post: any) => {
     setEditingPost(post);
     setFormData({
-      title: post.title,
-      category: post.category,
-      content: post.content,
-      isNew: post.isNew || false,
-      isHot: post.isHot || false,
-      tags: post.tags ? post.tags.join(', ') : '',
+      title: post.title || '',
+      category: post.category || 'jobs',
+      content: post.content || '',
+      shortDescription: post.shortDescription || '',
+      importantDates: Array.isArray(post.importantDates) ? post.importantDates : [],
+      applicationFee: Array.isArray(post.applicationFee) ? post.applicationFee : [],
+      vacancyDetails: Array.isArray(post.vacancyDetails) ? post.vacancyDetails : [],
+      importantLinks: Array.isArray(post.importantLinks) ? post.importantLinks : [],
+      faq: Array.isArray(post.faq) ? post.faq : [],
+      isNew: post.isNew ?? true,
+      isHot: post.isHot ?? false,
+      tags: Array.isArray(post.tags) ? post.tags.join(', ') : '',
       date: post.date ? post.date.split('T')[0] : new Date().toISOString().split('T')[0]
     });
     setIsAdding(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (!user || !isAdmin) {
@@ -344,6 +393,130 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                     placeholder="e.g. SSC GD Constable Recruitment 2025"
                   />
                 </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Short Description (Sarkari Intro)</label>
+                  <textarea 
+                    rows={3}
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium"
+                    value={formData.shortDescription}
+                    onChange={e => setFormData({ ...formData, shortDescription: e.target.value })}
+                    placeholder="Brief intro about the post..."
+                  />
+                </div>
+
+                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-gray-50/50 dark:bg-gray-800/30">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-red-primary">Important Dates</label>
+                    <button type="button" onClick={() => setFormData({...formData, importantDates: [...formData.importantDates, {label: '', value: ''}]})} className="text-[10px] bg-red-primary text-white px-2 py-1 rounded font-bold">+ Add Row</button>
+                  </div>
+                  {formData.importantDates.map((d, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input type="text" placeholder="Label (e.g. Apply Start)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={d.label} onChange={e => {
+                        const newDates = [...formData.importantDates];
+                        newDates[i].label = e.target.value;
+                        setFormData({...formData, importantDates: newDates});
+                      }} />
+                      <input type="text" placeholder="Value (e.g. 01/01/2025)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs text-red-primary font-bold" value={d.value} onChange={e => {
+                        const newDates = [...formData.importantDates];
+                        newDates[i].value = e.target.value;
+                        setFormData({...formData, importantDates: newDates});
+                      }} />
+                      <button type="button" onClick={() => setFormData({...formData, importantDates: formData.importantDates.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-gray-50/50 dark:bg-gray-800/30">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-red-primary">Application Fee</label>
+                    <button type="button" onClick={() => setFormData({...formData, applicationFee: [...formData.applicationFee, {label: '', value: ''}]})} className="text-[10px] bg-red-primary text-white px-2 py-1 rounded font-bold">+ Add Row</button>
+                  </div>
+                  {formData.applicationFee.map((f, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input type="text" placeholder="Category (e.g. Gen/OBC)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={f.label} onChange={e => {
+                        const newFees = [...formData.applicationFee];
+                        newFees[i].label = e.target.value;
+                        setFormData({...formData, applicationFee: newFees});
+                      }} />
+                      <input type="text" placeholder="Fee (e.g. ₹ 100/-)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs text-red-primary font-bold" value={f.value} onChange={e => {
+                        const newFees = [...formData.applicationFee];
+                        newFees[i].value = e.target.value;
+                        setFormData({...formData, applicationFee: newFees});
+                      }} />
+                      <button type="button" onClick={() => setFormData({...formData, applicationFee: formData.applicationFee.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-blue-50/50 dark:bg-blue-900/10">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-blue-900 dark:text-blue-400">Vacancy Details</label>
+                    <button type="button" onClick={() => setFormData({...formData, vacancyDetails: [...formData.vacancyDetails, {category: '', posts: ''}]})} className="text-[10px] bg-blue-900 text-white px-2 py-1 rounded font-bold">+ Add Category</button>
+                  </div>
+                  {formData.vacancyDetails.map((v, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input type="text" placeholder="Category (e.g. UR)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={v.category} onChange={e => {
+                        const newVac = [...formData.vacancyDetails];
+                        newVac[i].category = e.target.value;
+                        setFormData({...formData, vacancyDetails: newVac});
+                      }} />
+                      <input type="text" placeholder="Posts (e.g. 500)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs font-bold" value={v.posts} onChange={e => {
+                        const newVac = [...formData.vacancyDetails];
+                        newVac[i].posts = e.target.value;
+                        setFormData({...formData, vacancyDetails: newVac});
+                      }} />
+                      <button type="button" onClick={() => setFormData({...formData, vacancyDetails: formData.vacancyDetails.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-green-50/50 dark:bg-green-900/10">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-green-700">Important Links</label>
+                    <button type="button" onClick={() => setFormData({...formData, importantLinks: [...formData.importantLinks, {label: '', url: ''}]})} className="text-[10px] bg-green-700 text-white px-2 py-1 rounded font-bold">+ Add Link</button>
+                  </div>
+                  {formData.importantLinks.map((l, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input type="text" placeholder="Label (e.g. Apply Online)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={l.label} onChange={e => {
+                        const newLinks = [...formData.importantLinks];
+                        newLinks[i].label = e.target.value;
+                        setFormData({...formData, importantLinks: newLinks});
+                      }} />
+                      <input type="text" placeholder="URL (https://...)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs text-blue-link" value={l.url} onChange={e => {
+                        const newLinks = [...formData.importantLinks];
+                        newLinks[i].url = e.target.value;
+                        setFormData({...formData, importantLinks: newLinks});
+                      }} />
+                      <button type="button" onClick={() => setFormData({...formData, importantLinks: formData.importantLinks.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-orange-50/50 dark:bg-orange-900/10">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-orange-600">FAQ Section</label>
+                    <button type="button" onClick={() => setFormData({...formData, faq: [...formData.faq, {question: '', answer: ''}]})} className="text-[10px] bg-orange-600 text-white px-2 py-1 rounded font-bold">+ Add FAQ</button>
+                  </div>
+                  {formData.faq.map((f, i) => (
+                    <div key={i} className="space-y-2 border-b border-border-color pb-2">
+                      <input type="text" placeholder="Question" className="w-full bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs font-bold" value={f.question} onChange={e => {
+                        const newFaq = [...formData.faq];
+                        newFaq[i].question = e.target.value;
+                        setFormData({...formData, faq: newFaq});
+                      }} />
+                      <div className="flex gap-2">
+                         <input type="text" placeholder="Answer" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={f.answer} onChange={e => {
+                           const newFaq = [...formData.faq];
+                           newFaq[i].answer = e.target.value;
+                           setFormData({...formData, faq: newFaq});
+                         }} />
+                         <button type="button" onClick={() => setFormData({...formData, faq: formData.faq.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Category *</label>
                   <select 
@@ -454,7 +627,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                           <Eye size={12} /> {post.views?.toLocaleString() || 0} VIEWS
                         </span>
                         <span className="text-[10px] text-text-secondary font-bold opacity-70 uppercase">
-                          DB ID: <span className="font-mono text-[9px]">{post.id.slice(0, 8)}...</span>
+                          DB ID: <span className="font-mono text-[9px]">{post.id}</span>
                         </span>
                       </div>
                     </div>
