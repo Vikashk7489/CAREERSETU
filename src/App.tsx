@@ -30,7 +30,8 @@ import {
   Send,
   Lock,
   LayoutDashboard,
-  Plus
+  Plus,
+  PhoneCall
 } from 'lucide-react';
 import { allData, tickerItems, quickLinks, categoryMap, JobItem } from './data';
 
@@ -514,6 +515,15 @@ export default function App() {
 
         {/* Sidebar */}
         <aside className="space-y-6">
+          {/* Ad unit (Sidebar Top) */}
+          <div className="bg-white dark:bg-gray-900 border border-border-color p-2 rounded-lg text-center">
+            <ScriptAdBanner />
+            <div className="flex justify-center gap-1 mt-1">
+              <ScriptAdBanner type="mobile" />
+              <ScriptAdBanner type="mobile" />
+            </div>
+          </div>
+
           {/* Sidebar Widget: Trending */}
           <SidebarWidget title="🔥 Trending / ट्रेंडिंग">
             <ul className="divide-y divide-border-color">
@@ -566,6 +576,22 @@ export default function App() {
               ))}
             </ul>
           </SidebarWidget>
+
+          {/* Sticky Sidebar Ad unit */}
+          <div className="sticky top-20 space-y-4">
+             <div className="bg-white dark:bg-gray-900 border border-border-color p-2 rounded-lg text-center shadow-md">
+               <p className="text-[8px] uppercase font-bold text-gray-400 mb-1">Sponsored</p>
+               <ScriptAdBanner />
+             </div>
+             <div className="bg-blue-600 text-white p-4 rounded-xl shadow-lg">
+               <h4 className="text-xs font-bold uppercase mb-2">🚀 Free Job Alert</h4>
+               <p className="text-[10px] opacity-90 leading-relaxed mb-3">Get Latest Jobs, Results & Admit Card updates instantly on your mobile.</p>
+               <button onClick={() => window.open('https://t.me/CareerSetu76', '_blank')} className="w-full bg-white text-blue-600 py-2 rounded-lg text-[10px] font-black uppercase shadow-inner">Subscribe Telegram</button>
+             </div>
+             <div className="bg-white dark:bg-gray-900 border border-border-color p-2 rounded-lg text-center">
+               <ScriptAdBanner />
+             </div>
+          </div>
         </aside>
       </main>
 
@@ -682,14 +708,34 @@ export default function App() {
       )}
 
       {/* Floating Buttons */}
-      {showScrollTop && (
-        <button 
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 w-10 h-10 rounded-full bg-red-primary text-white shadow-xl flex items-center justify-center hover:-translate-y-1 transition-all z-50"
+      <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">
+        {showScrollTop && (
+          <button 
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="w-10 h-10 rounded-full bg-red-primary text-white shadow-xl flex items-center justify-center hover:-translate-y-1 transition-all"
+          >
+            <ChevronUp size={24} />
+          </button>
+        )}
+        <a 
+          href="https://whatsapp.com/channel/0029Vb86tg3D38CMUPve8U0a" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="w-10 h-10 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all"
+          title="Join WhatsApp"
         >
-          <ChevronUp size={24} />
-        </button>
-      )}
+          <MessageCircle size={20} />
+        </a>
+        <a 
+          href="https://t.me/CareerSetu76" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="w-10 h-10 bg-[#0088CC] text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-all"
+          title="Join Telegram"
+        >
+          <Send size={20} />
+        </a>
+      </div>
 
       {/* Toast */}
       {toast && (
@@ -808,11 +854,28 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
            <h1 className="text-lg md:text-2xl font-black uppercase tracking-tight leading-tight mb-1">
              {item.title}
            </h1>
-           <div className="flex justify-center flex-wrap gap-2 text-[9px] font-bold opacity-90">
-             <span className="bg-yellow-400 text-red-900 px-2 py-0.5 rounded shadow-sm">Updated : {new Date(item.date).toLocaleDateString()}</span>
-             <span className="bg-white/20 px-2 py-0.5 rounded uppercase">{cat.label}</span>
-             <span className="bg-white/20 px-2 py-0.5 rounded uppercase">👁️ {item.views.toLocaleString()} Views</span>
-           </div>
+             <div className="flex justify-center flex-wrap gap-2 text-[9px] font-bold opacity-90">
+               <span className="bg-yellow-400 text-red-900 px-2 py-0.5 rounded shadow-sm">Updated : {new Date(item.date).toLocaleDateString()}</span>
+               <span className="bg-white/20 px-2 py-0.5 rounded uppercase">{cat.label}</span>
+               <span className="bg-white/20 px-2 py-0.5 rounded uppercase">👁️ {item.views.toLocaleString()} Views</span>
+               <button 
+                 onClick={() => {
+                   if (navigator.share) {
+                     navigator.share({
+                       title: item.title,
+                       text: `Check out ${item.title} on CareerSetu`,
+                       url: window.location.href,
+                     }).catch(console.error);
+                   } else {
+                     navigator.clipboard.writeText(window.location.href);
+                     alert('Link copied to clipboard!');
+                   }
+                 }}
+                 className="bg-white/20 px-2 py-0.5 rounded uppercase flex items-center gap-1 hover:bg-white/30 transition-colors"
+               >
+                 <Share2 size={10} /> Share
+               </button>
+             </div>
         </div>
 
         <div className="p-4 md:p-6 space-y-8">
@@ -825,6 +888,21 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                 <Send size={16} /> Telegram
               </a>
             </div>
+
+            {/* Featured Image */}
+            {item.imageUrl && (
+              <div className="rounded-xl overflow-hidden border-4 border-red-primary/10 shadow-lg">
+                <img 
+                  src={item.imageUrl} 
+                  alt={item.title} 
+                  className="w-full h-auto object-cover max-h-[400px]"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="bg-gray-100 dark:bg-gray-800 py-2 px-4 text-center">
+                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">{item.title} Official Notification Graphic</p>
+                </div>
+              </div>
+            )}
 
             {/* Ad Slot */}
             <div className="bg-transparent text-center space-y-2">
@@ -1004,6 +1082,30 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                     </tbody>
                   </table>
                 </div>
+
+                {/* Ad Slot (Post Mid) */}
+                <div className="bg-transparent text-center space-y-2">
+                  <ScriptAdBanner />
+                  <div className="flex justify-center gap-2">
+                    <ScriptAdBanner type="mobile" />
+                    <ScriptAdBanner type="mobile" />
+                  </div>
+                </div>
+
+                {/* Detailed Long Article Section */}
+                {item.longArticle && (
+                  <div className="space-y-6">
+                    <h2 className="text-xl font-black text-red-primary border-b-2 border-red-primary pb-2 uppercase tracking-tight">Detailed Information & Guidelines</h2>
+                    <div className="bg-[var(--card-bg)] p-6 rounded-xl border border-border-color shadow-sm whitespace-pre-wrap text-[14px] leading-8 font-medium text-[var(--text-primary)] font-serif">
+                      {item.longArticle}
+                    </div>
+                    
+                    {/* Another Ad Slot within the content for space filling */}
+                    <div className="my-6 border border-dashed border-gray-300 dark:border-gray-700 p-2 rounded">
+                       <ScriptAdBanner />
+                    </div>
+                  </div>
+                )}
 
                 {/* FAQ Section */}
                 <div className="space-y-4 text-[var(--text-primary)]">

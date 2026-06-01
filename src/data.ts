@@ -13,6 +13,8 @@ export interface JobItem {
     applicationFee?: { label: string; value: string }[];
     vacancyDetails?: { category: string; posts: string }[];
     totalPosts?: string;
+    longArticle?: string;
+    imageUrl?: string;
     importantLinks?: { label: string; url: string }[];
     faq?: { question: string; answer: string }[];
 }
@@ -33,7 +35,72 @@ export const allData: JobItem[] = [
     {id:12,title:"IBPS Clerk 2025 Prelims Result - मेन्स कॉल लेटर",date:"02 Feb 2025",category:"results",isNew:false,isHot:false,tags:["ibps","clerk","result"],views:18700},
 
     // LATEST JOBS
-    {id:13,title:"SSC CGL 2025 ऑनलाइन फॉर्म - 15,000+ पदों की भर्ती",date:"03 Mar 2025",category:"jobs",isNew:true,isHot:true,tags:["ssc","cgl","recruitment"],views:67500},
+    {
+        id: 13,
+        title: "SSC CGL 2025 ऑनलाइन फॉर्म - 15,000+ पदों की भर्ती",
+        date: "2025-03-03",
+        category: "jobs",
+        isNew: true,
+        isHot: true,
+        tags: ["ssc", "cgl", "recruitment"],
+        views: 67500,
+        imageUrl: "https://images.unsplash.com/photo-1541339907198-e08759df9a13?auto=format&fit=crop&q=80&w=1000",
+        shortDescription: "Staff Selection Commission (SSC) has released the notification for Combined Graduate Level (CGL) Exam 2025. This is a golden opportunity for graduates to secure Group B and Group C posts in various ministries.",
+        longArticle: `SSC CGL 2025 Recruitment: A Detailed Guide for Aspiring Graduates
+
+The Staff Selection Commission (SSC) has officially released the notification for the Combined Graduate Level (CGL) Examination 2025. This prestigious exam is the gateway to some of the most sought-after government jobs in India, offering posts in various ministries, departments, and organizations of the Government of India.
+
+## Overview of SSC CGL 2025
+The SSC CGL Exam is conducted in multiple stages to recruit candidates for Group 'B' and Group 'C' posts. For recruitment year 2025, the commission has announced more than 15,000 vacancies across different departments including the Income Tax Department, Central Excise, CBI, and more.
+
+## Key Posts Offered
+1. **Assistant Audit Officer / Assistant Accounts Officer:** The only Gazetted posts under CGL.
+2. **Assistant Section Officer (ASO):** In CSS, MEA, IB, and Railway Ministry.
+3. **Inspector (Examiner/Preventive Officer/Central Excise):** Prestigious field jobs.
+4. **Sub-Inspector in CBI and NIA:** For those seeking challenging investigative roles.
+5. **Tax Assistant and Upper Division Clerk:** Entry-level ministerial roles with good promotion prospects.
+
+## Eligibility Criteria
+- **Educational Qualification:** A Bachelor’s degree from a recognized university or institute. Specialized qualifications are required for certain posts like JSO.
+- **Age Limit:** Generally 18-30 or 18-32 years depending on the post. Standard age relaxations apply for SC, ST, OBC, and PwD candidates.
+
+## The Selection Process (Revised Pattern)
+The examination process usually consists of two tiers:
+### Tier-I (Qualifying)
+- **Sections:** Reasoning, General Awareness, Quantitative Aptitude, and English.
+- **Marks:** 200 marks (each section 50 marks).
+- **Time:** 60 minutes.
+
+### Tier-II (Final Selection)
+Tier-II consists of Paper-I (Compulsory for all posts) and Paper-II/III for specialized posts.
+- **Paper-I:** Includes Mathematical Abilities, Reasoning, English Language, General Awareness, Computer Knowledge, and Data Entry Speed Test.
+
+## Preparation Strategy
+Success in SSC CGL requires a blend of speed and accuracy. Candidates should start by mastering the basics of Mathematics and Grammar. Regular practice of previous year papers is crucial to understand the exam pattern and trending questions.
+
+## Career Growth and Salary
+Selected candidates are placed in various pay levels from Level-4 to Level-8. A newly recruited ASO in Delhi can expect an initial gross salary of approximately Rs. 70,000 to 80,000 per month, along with benefits like CGHS, LTC, and yearly increments.
+
+Conclusion:
+SSC CGL 2025 is not just an exam; it's a life-changing opportunity. Given the increased vacancies this year, the competition will be intense. Start your journey today with a structured study plan. For detailed official rules, download the notification PDF linked below.`,
+        importantDates: [
+            { label: "Notification Date", value: "03 March 2025" },
+            { label: "Application Start", value: "05 March 2025" },
+            { label: "Application End", value: "04 April 2025" },
+            { label: "Tier-I Exam Date", value: "June-July 2025" }
+        ],
+        applicationFee: [
+            { label: "General / OBC / EWS", value: "₹ 100/-" },
+            { label: "SC / ST / PH", value: "₹ 0/-" },
+            { label: "All Category Female", value: "₹ 0/-" }
+        ],
+        totalPosts: "15,000+",
+        importantLinks: [
+            { label: "Apply Online", url: "https://ssc.gov.in" },
+            { label: "Download Notification", url: "https://ssc.gov.in/notifications" },
+            { label: "Official Website", url: "https://ssc.gov.in" }
+        ]
+    },
     {id:14,title:"UPSC NDA/NA (II) 2025 भर्ती - 400+ पद",date:"01 Mar 2025",category:"jobs",isNew:true,isHot:true,tags:["upsc","nda","recruitment"],views:34500},
     {id:15,title:"RPF Constable & Sub-Inspector 2025 - 9,000+ पद",date:"28 Feb 2025",category:"jobs",isNew:true,isHot:true,tags:["rpf","constable","recruitment"],views:41200},
     {id:16,title:"IBPS Clerk 2025 भर्ती अधिसूचना - 6,000+ पद",date:"26 Feb 2025",category:"jobs",isNew:true,isHot:false,tags:["ibps","clerk","recruitment"],views:29800},

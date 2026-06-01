@@ -16,7 +16,8 @@ import {
   RefreshCw,
   Mail,
   Key as KeyIcon,
-  Eye
+  Eye,
+  Sparkles
 } from 'lucide-react';
 
 export default function AdminPanel({ onBack }: { onBack: () => void }) {
@@ -44,6 +45,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     totalPosts: '',
     importantLinks: [] as { label: string, url: string }[],
     faq: [] as { question: string, answer: string }[],
+    longArticle: '',
+    imageUrl: '',
     isNew: true,
     isHot: false,
     tags: '',
@@ -212,6 +215,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       applicationFee: [],
       vacancyDetails: [],
       totalPosts: '',
+      longArticle: '',
+      imageUrl: '',
       importantLinks: [],
       faq: [],
       isNew: true,
@@ -232,6 +237,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       applicationFee: Array.isArray(post.applicationFee) ? post.applicationFee : [],
       vacancyDetails: Array.isArray(post.vacancyDetails) ? post.vacancyDetails : [],
       totalPosts: post.totalPosts || '',
+      longArticle: post.longArticle || '',
+      imageUrl: post.imageUrl || '',
       importantLinks: Array.isArray(post.importantLinks) ? post.importantLinks : [],
       faq: Array.isArray(post.faq) ? post.faq : [],
       isNew: post.isNew ?? true,
@@ -415,6 +422,26 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 </div>
                 
                 <div className="space-y-2 md:col-span-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Featured Image URL</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setFormData({...formData, imageUrl: `https://images.unsplash.com/photo-1541339907198-e08759df9a13?auto=format&fit=crop&q=80&w=1000`})}
+                      className="text-[10px] flex items-center gap-1 text-red-primary font-bold hover:underline"
+                    >
+                      <Sparkles size={12} /> Suggest Image
+                    </button>
+                  </div>
+                  <input 
+                    type="text" 
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium"
+                    value={formData.imageUrl}
+                    onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
+                    placeholder="https://images.unsplash.com/photo... or use /images/post1.jpg"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Short Description (Sarkari Intro)</label>
                   <textarea 
                     rows={3}
@@ -547,6 +574,29 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Detailed English Article (2-3 Pages)</label>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const template = `## ${formData.title}\n\nDetailed Information regarding ${formData.title} is given below. Candidates are advised to read carefully.\n\n### 1. Introduction\nThis recruitment drive is aimed at filling various vacancies in the respective department. Thousands of candidates participate in this prestigious examination every year.\n\n### 2. Eligibility\nCandidates must hold a Bachelor's degree or 10th/12th depending on the post. Age relaxation applies as per govt rules.\n\n### 3. How to Apply\nFollow the steps on the official website ssc.gov.in or the respective board website. Fill the form before the last date.`;
+                        setFormData({...formData, longArticle: template});
+                      }}
+                      className="text-[10px] flex items-center gap-1 text-red-primary font-bold hover:underline"
+                    >
+                      <Sparkles size={12} /> Auto-Generate Draft
+                    </button>
+                  </div>
+                  <textarea 
+                    rows={12}
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium"
+                    value={formData.longArticle}
+                    onChange={e => setFormData({ ...formData, longArticle: e.target.value })}
+                    placeholder="Write a long detailed article in English with all details..."
+                  />
                 </div>
 
                 <div className="space-y-2">
