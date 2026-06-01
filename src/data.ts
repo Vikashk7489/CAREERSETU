@@ -12,6 +12,7 @@ export interface JobItem {
     importantDates?: { label: string; value: string }[];
     applicationFee?: { label: string; value: string }[];
     vacancyDetails?: { category: string; posts: string }[];
+    totalPosts?: string;
     importantLinks?: { label: string; url: string }[];
     faq?: { question: string; answer: string }[];
 }

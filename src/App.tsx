@@ -101,22 +101,31 @@ export default function App() {
       setCurrentPage('admin');
     }
 
-    // Global Ad Scripts: Social Bar & Popunder
-    const socialBar = document.createElement('script');
-    socialBar.src = 'https://pl29606893.effectivecpmnetwork.com/a7/ae/7f/a7ae7f68b3162c91ce5838defee20d25.js';
-    socialBar.async = true;
-    document.body.appendChild(socialBar);
+    let socialBar: HTMLScriptElement | null = null;
+    let popunder: HTMLScriptElement | null = null;
 
-    const popunder = document.createElement('script');
-    popunder.src = 'https://pl29606927.effectivecpmnetwork.com/4b/c2/4a/4bc24a29b0aa581eb392fd042161cdad.js';
-    popunder.async = true;
-    document.body.appendChild(popunder);
+    // Only run global ads IF NOT on admin page
+    if (currentPage !== 'admin') {
+      socialBar = document.createElement('script');
+      socialBar.src = 'https://pl29606893.effectivecpmnetwork.com/a7/ae/7f/a7ae7f68b3162c91ce5838defee20d25.js';
+      socialBar.async = true;
+      document.body.appendChild(socialBar);
+
+      popunder = document.createElement('script');
+      popunder.src = 'https://pl29606927.effectivecpmnetwork.com/4b/c2/4a/4bc24a29b0aa581eb392fd042161cdad.js';
+      popunder.async = true;
+      document.body.appendChild(popunder);
+    }
 
     return () => {
-      document.body.removeChild(socialBar);
-      document.body.removeChild(popunder);
+      if (socialBar && document.body.contains(socialBar)) {
+        document.body.removeChild(socialBar);
+      }
+      if (popunder && document.body.contains(popunder)) {
+        document.body.removeChild(popunder);
+      }
     };
-  }, []);
+  }, [currentPage]);
 
   // Fetch posts from Supabase
   useEffect(() => {
@@ -423,8 +432,12 @@ export default function App() {
               </div>
 
               {/* Ad Slot (Home Top) */}
-              <div className="mb-6 bg-transparent text-center">
+              <div className="mb-4 bg-transparent text-center space-y-2">
                 <ScriptAdBanner />
+                <div className="flex justify-center gap-2">
+                   <ScriptAdBanner type="mobile" />
+                   <ScriptAdBanner type="mobile" />
+                </div>
                 <ins className="adsbygoogle"
                      style={{ display: 'block' }}
                      data-ad-client="ca-pub-5868574385517005"
@@ -445,8 +458,8 @@ export default function App() {
                       onToggleBookmark={toggleBookmark}
                       isBookmarked={bookmarks.includes.bind(bookmarks)}
                     />
-                    {idx % 2 === 1 && (
-                      <div className="my-2 border border-border-color/10 rounded overflow-hidden">
+                    {idx % 1 === 0 && (
+                      <div className="my-2 border border-border-color/5 overflow-hidden">
                         <ScriptAdBanner />
                       </div>
                     )}
@@ -557,7 +570,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-dark-gray text-white pt-10 pb-6 mt-10">
+      <footer className="bg-dark-gray text-white pt-6 pb-4 mt-6">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <div className="flex justify-center gap-4 mb-6">
             {['f', '𝕏', '📷', '▶', '✈'].map((icon, idx) => (
@@ -567,14 +580,15 @@ export default function App() {
             ))}
           </div>
           
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] mb-6 font-medium opacity-80">
-              <button onClick={() => navigateTo('home')} className="hover:opacity-100">Home</button>
-              <button onClick={() => navigateTo('contact')} className="hover:opacity-100">Contact Us</button>
-              <button onClick={() => navigateTo('about')} className="hover:opacity-100">About Us</button>
-              <button onClick={() => navigateTo('privacy')} className="hover:opacity-100">Privacy Policy</button>
-              <button onClick={() => navigateTo('terms')} className="hover:opacity-100">Terms & Conditions</button>
-              <button onClick={() => navigateTo('disclaimer')} className="hover:opacity-100">Disclaimer</button>
-            </div>
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[10px] mb-4 font-medium opacity-80 uppercase tracking-tighter">
+            <button onClick={() => navigateTo('home')} className="hover:opacity-100">Home</button>
+            <button onClick={() => navigateTo('contact')} className="hover:opacity-100">Contact</button>
+            <button onClick={() => navigateTo('about')} className="hover:opacity-100">About</button>
+            <button onClick={() => navigateTo('privacy')} className="hover:opacity-100">Privacy</button>
+            <button onClick={() => navigateTo('terms')} className="hover:opacity-100">Terms</button>
+            <button onClick={() => navigateTo('disclaimer')} className="hover:opacity-100">Disclaimer</button>
+            <button onClick={() => navigateTo('admin')} className="hover:opacity-100 font-black text-red-400">Admin</button>
+          </div>
 
           <div className="pt-6 border-t border-white/10 text-[10px] opacity-60">
             © 2025 CareerSetu. All Rights Reserved. | सरकारी नौकरी, रिजल्ट और एडमिट कार्ड की जानकारी
@@ -790,13 +804,13 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
 
       <article className="bg-[var(--card-bg)] border border-border-color rounded-lg overflow-hidden shadow-md">
         {/* Sarkari Style Header Banner */}
-        <div className="bg-gradient-to-r from-red-800 to-red-600 text-white p-6 text-center border-b-4 border-orange-500">
-           <h1 className="text-xl md:text-3xl font-extrabold uppercase tracking-tight leading-tight mb-2">
+        <div className="bg-gradient-to-r from-red-800 to-red-800 text-white p-4 text-center border-b-2 border-orange-500">
+           <h1 className="text-lg md:text-2xl font-black uppercase tracking-tight leading-tight mb-1">
              {item.title}
            </h1>
-           <div className="flex justify-center flex-wrap gap-4 text-[11px] font-bold opacity-90">
-             <span className="bg-white/20 px-2 py-0.5 rounded uppercase">📂 {cat.label}</span>
-             <span className="bg-white/20 px-2 py-0.5 rounded uppercase">📅 {new Date(item.date).toLocaleDateString()}</span>
+           <div className="flex justify-center flex-wrap gap-2 text-[9px] font-bold opacity-90">
+             <span className="bg-yellow-400 text-red-900 px-2 py-0.5 rounded shadow-sm">Updated : {new Date(item.date).toLocaleDateString()}</span>
+             <span className="bg-white/20 px-2 py-0.5 rounded uppercase">{cat.label}</span>
              <span className="bg-white/20 px-2 py-0.5 rounded uppercase">👁️ {item.views.toLocaleString()} Views</span>
            </div>
         </div>
@@ -813,8 +827,12 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
             </div>
 
             {/* Ad Slot */}
-            <div className="bg-transparent text-center">
+            <div className="bg-transparent text-center space-y-2">
               <ScriptAdBanner />
+              <div className="flex justify-center gap-2">
+                <ScriptAdBanner type="mobile" />
+                <ScriptAdBanner type="mobile" />
+              </div>
             </div>
 
             <div className="prose prose-sm dark:prose-invert max-w-none space-y-8">
@@ -878,23 +896,27 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                   </div>
                 </div>
 
-                {/* Age Limits Section */}
                 <div className="overflow-hidden border-2 border-green-600 rounded-lg text-[var(--text-primary)]">
                   <div className="bg-green-600 text-white flex justify-between items-center px-4 py-2 font-bold uppercase text-[13px]">
-                    <span>Notification Age Limits</span>
-                    <span>Total Posts</span>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      <span>Notification Age Limits</span>
+                    </div>
+                    <span className="bg-white text-green-700 px-2 py-0.5 rounded text-[11px]">Total Post</span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] divide-y md:divide-y-0 md:divide-x divide-green-600">
-                    <div className="p-4 text-[12px] space-y-2">
-                       <ul className="list-disc pl-5 font-bold space-y-1">
-                         <li>Minimum Age : 20-22 Years</li>
-                         <li>Maximum Age : 37-42 Years</li>
-                         <li>Age Relaxation Extra as per Rules.</li>
+                    <div className="p-4 text-[12px] space-y-2 bg-green-50/30 dark:bg-green-900/5">
+                       <ul className="list-disc pl-5 font-bold space-y-2 text-green-800 dark:text-green-300">
+                         <li>Minimum Age : 20-22 Years (Post Wise)</li>
+                         <li>Maximum Age : 37 Years (UR Male)</li>
+                         <li>Maximum Age : 40 Year (Female UR, BC/ EBC-Male & Female)</li>
+                         <li>Maximum Age : 42 Year (SC/ ST-Male & Female)</li>
+                         <li className="text-red-primary">Age Relaxation Extra as per Recruitment Rules.</li>
                        </ul>
                     </div>
-                    <div className="p-4 flex flex-col items-center justify-center text-center">
-                       <div className="text-xl font-black text-green-700">1189</div>
-                       <div className="text-[11px] font-bold uppercase opacity-70">Post Details</div>
+                    <div className="p-4 flex flex-col items-center justify-center text-center bg-white dark:bg-gray-900">
+                       <div className="text-3xl font-black text-green-700 leading-none">{item.totalPosts || '1189'}</div>
+                       <div className="text-[10px] font-bold uppercase opacity-60 mt-1">Vacancies</div>
                     </div>
                   </div>
                 </div>
@@ -937,14 +959,14 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                 {/* How to Fill Section */}
                 <div className="overflow-hidden border-2 border-blue-900 rounded-lg text-[var(--text-primary)]">
                   <div className="bg-blue-900 text-white text-center py-2 font-bold uppercase text-sm">
-                    How To Fill Online Form 2026
+                    How To Fill {item.title.split(' ')[0]} Online Form 2026
                   </div>
                   <div className="p-4 text-[12px] space-y-3 font-semibold leading-relaxed">
-                    <p>• Candidate Read the Notification Before Apply the Recruitment Application Form in CareerSetu.</p>
-                    <p>• Check and Collect the All Document - Eligibility, ID Proof, Address Details, Basic Details.</p>
-                    <p>• Ready Scan Document Related to Recruitment Form - Photo, Sign, ID Proof, Etc.</p>
-                    <p>• Before Submit the Application Form Must Check the Preview and All Column Carefully.</p>
-                    <p className="text-red-primary">• If Candidate Required to Paying the Application Fee Must Submit. If You have Not the Required Application Fees Your Form is Not Completed.</p>
+                    <p>• Candidates Who Wish To Apply For The <strong>{item.title.split(' ')[0]}</strong> Post Can Submit Their Application Online Before the deadline.</p>
+                    <p>• Use The Click Here Link Provided Below Under Important Link Section To Apply Directly.</p>
+                    <p>• Alternatively, Visit The <strong>Official Website</strong> To Complete The Application Process Online.</p>
+                    <p>• Make Sure To Complete The Application Before The Deadline.</p>
+                    <p className="text-red-primary font-bold">• Note – छात्रों से ये अनुरोध किया जाता है की वो अपना फॉर्म भरने से पहले Official Notification को ध्यान से जरूर पढ़े उसके बाद ही अपना फॉर्म भरे।</p>
                     <p>• Take A Print Out of Final Submitted Form.</p>
                   </div>
                 </div>
@@ -956,16 +978,26 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                   </div>
                   <table className="w-full text-[13px] text-center border-collapse">
                     <tbody className="divide-y divide-red-primary font-extrabold uppercase">
-                       {(item.importantLinks || [
-                         { label: 'Apply Online', url: '#' },
-                         { label: 'Download Notification', url: '#' },
-                         { label: 'Sarkari Exam Page', url: '#' },
-                         { label: 'Official Website', url: 'https://bpsc.bih.nic.in' }
+                       {(item.importantLinks && item.importantLinks.length > 0 ? item.importantLinks : [
+                         { label: 'Apply Online Link', url: '#' },
+                         { label: 'Download Official Notification', url: '#' },
+                         { label: 'Official Website', url: '#' }
                        ]).map((link: any, i: number) => (
-                         <tr key={i} className="hover:bg-red-primary/5 transition-colors">
-                           <td className="py-3.5 px-4 text-left border-r border-red-primary w-2/3">{link.label}</td>
-                           <td className="py-3.5 px-4">
-                             <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-link hover:text-red-primary transition-colors">Click Here</a>
+                         <tr key={i} className="hover:bg-red-primary/5 transition-colors border-b border-red-primary/20">
+                           <td className="py-2.5 px-4 text-left border-r border-red-primary w-1/2 bg-yellow-50 dark:bg-yellow-950/20 font-bold text-blue-900 dark:text-blue-300">{link.label}</td>
+                           <td className="py-2.5 px-4 bg-white dark:bg-gray-900">
+                             {link.url.includes(',') ? (
+                               <div className="flex flex-wrap justify-center gap-x-2 gap-y-1">
+                                 {link.url.split(',').map((u: string, idx: number) => (
+                                   <React.Fragment key={idx}>
+                                      <a href={u.trim()} target="_blank" rel="noopener noreferrer" className="text-blue-700 dark:text-blue-400 hover:text-red-primary font-black">Link-{idx+1}</a>
+                                      {idx < link.url.split(',').length - 1 && <span className="text-gray-400">|</span>}
+                                   </React.Fragment>
+                                 ))}
+                               </div>
+                             ) : (
+                               <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 dark:text-blue-400 hover:text-red-primary font-black">Click Here</a>
+                             )}
                            </td>
                          </tr>
                        ))}

@@ -28,7 +28,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [isAdding, setIsAdding] = useState(false);
 
   // Login State
-  const [loginMethod, setLoginMethod] = useState<'google' | 'email'>('email');
+  const [loginMethod, setLoginMethod] = useState<'google' | 'email' | 'signup'>('email');
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -41,6 +41,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     importantDates: [] as { label: string, value: string }[],
     applicationFee: [] as { label: string, value: string }[],
     vacancyDetails: [] as { category: string, posts: string }[],
+    totalPosts: '',
     importantLinks: [] as { label: string, url: string }[],
     faq: [] as { question: string, answer: string }[],
     isNew: true,
@@ -129,14 +130,24 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     e.preventDefault();
     try {
       setLoginError(null);
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginData.email,
-        password: loginData.password,
-      });
-      if (error) throw error;
+      if (loginMethod === 'signup') {
+        const { error } = await supabase.auth.signUp({
+          email: loginData.email,
+          password: loginData.password,
+        });
+        if (error) throw error;
+        setLoginError("Account created! Please confirm your email if required or try logging in.");
+        setLoginMethod('email');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: loginData.email,
+          password: loginData.password,
+        });
+        if (error) throw error;
+      }
     } catch (err: any) {
-      setLoginError("Invalid email or password. Please try again.");
-      console.error("Email login failed:", err);
+      setLoginError(err.message || "Invalid credentials. Please try again.");
+      console.error("Auth failed:", err);
     }
   };
 
@@ -200,6 +211,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       importantDates: [],
       applicationFee: [],
       vacancyDetails: [],
+      totalPosts: '',
       importantLinks: [],
       faq: [],
       isNew: true,
@@ -219,6 +231,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       importantDates: Array.isArray(post.importantDates) ? post.importantDates : [],
       applicationFee: Array.isArray(post.applicationFee) ? post.applicationFee : [],
       vacancyDetails: Array.isArray(post.vacancyDetails) ? post.vacancyDetails : [],
+      totalPosts: post.totalPosts || '',
       importantLinks: Array.isArray(post.importantLinks) ? post.importantLinks : [],
       faq: Array.isArray(post.faq) ? post.faq : [],
       isNew: post.isNew ?? true,
@@ -246,15 +259,21 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
             <div className="flex gap-2 mb-8 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
               <button 
                 onClick={() => setLoginMethod('email')}
-                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${loginMethod === 'email' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
+                className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${loginMethod === 'email' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
               >
-                ID/Password
+                Login
+              </button>
+              <button 
+                onClick={() => setLoginMethod('signup')}
+                className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${loginMethod === 'signup' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
+              >
+                Sign Up
               </button>
               <button 
                 onClick={() => setLoginMethod('google')}
-                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${loginMethod === 'google' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
+                className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${loginMethod === 'google' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
               >
-                Google Login
+                Google
               </button>
             </div>
 
@@ -268,16 +287,17 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
               <form onSubmit={handleEmailLogin} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase text-text-secondary flex items-center gap-1.5">
-                    <Mail size={12} /> Email Address
+                    <Mail size={12} /> Email ID (Admin)
                   </label>
                   <input 
                     required
                     type="email"
                     className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 transition-all font-medium"
-                    placeholder="admin@careersetu.com"
+                    placeholder="kumarprince80970@gmail.com"
                     value={loginData.email}
                     onChange={e => setLoginData({ ...loginData, email: e.target.value })}
                   />
+                  <p className="text-[9px] text-text-secondary opacity-60">Use your registered admin email as ID</p>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase text-text-secondary flex items-center gap-1.5">
@@ -296,7 +316,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                   type="submit"
                   className="w-full bg-red-primary text-white py-3 rounded-lg font-bold text-sm shadow-lg hover:brightness-110 active:scale-[0.98] transition-all uppercase tracking-widest mt-2"
                 >
-                  Login to Dashboard
+                  {loginMethod === 'signup' ? 'Create Admin Account' : 'Login to Admin Panel'}
                 </button>
               </form>
             ) : (
@@ -450,12 +470,24 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 </div>
 
                 <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-blue-50/50 dark:bg-blue-900/10">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-blue-900 dark:text-blue-400">Vacancy Details</label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-blue-900 dark:text-blue-400">Vacancy Details & Total Posts</label>
                     <button type="button" onClick={() => setFormData({...formData, vacancyDetails: [...formData.vacancyDetails, {category: '', posts: ''}]})} className="text-[10px] bg-blue-900 text-white px-2 py-1 rounded font-bold">+ Add Category</button>
                   </div>
+                  
+                  <div className="mb-4">
+                    <label className="text-[10px] font-bold uppercase text-text-secondary block mb-1">Grand Total Post Count</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. 1189" 
+                      className="w-full bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-2 text-sm font-black text-blue-900" 
+                      value={formData.totalPosts} 
+                      onChange={e => setFormData({...formData, totalPosts: e.target.value})} 
+                    />
+                  </div>
+
                   {formData.vacancyDetails.map((v, i) => (
-                    <div key={i} className="flex gap-2">
+                    <div key={i} className="flex gap-2 mt-2">
                       <input type="text" placeholder="Category (e.g. UR)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={v.category} onChange={e => {
                         const newVac = [...formData.vacancyDetails];
                         newVac[i].category = e.target.value;
