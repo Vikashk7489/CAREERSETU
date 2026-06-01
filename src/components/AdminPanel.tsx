@@ -27,8 +27,34 @@ import {
   Database,
   Shield,
   Smartphone,
-  Trash
+  Trash,
+  CheckCircle2,
+  AlertCircle,
+  Wand2,
+  List,
+  Target,
+  Megaphone,
+  Activity,
+  History,
+  Lock as LockIcon,
+  HardDrive
 } from 'lucide-react';
+
+async function callAI(prompt: string, systemPrompt: string) {
+  try {
+    const res = await fetch('/api/ai/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, systemPrompt })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return data.text;
+  } catch (err) {
+    console.error('AI Call Failed:', err);
+    throw err;
+  }
+}
 
 // Hardcoded Admin Credentials
 const ADMIN_ID = 'kumarprince80970@gmail.com';
@@ -41,6 +67,9 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<any | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState('');
+  const [aiPrompt, setAiPrompt] = useState('');
 
   // Login State
   const [loginData, setLoginData] = useState({ email: '', password: '' });
@@ -315,6 +344,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
             { id: 'categories', icon: <Plus size={18} />, label: '🏷 Categories' },
             { id: 'ai', icon: <Cpu size={18} />, label: '🤖 AI Center' },
             { id: 'ads', icon: <Globe size={18} />, label: '📢 Ad Manager' },
+            { id: 'newsletter', icon: <Mail size={18} />, label: '📰 Newsletter' },
             { id: 'seo', icon: <Search size={18} />, label: '🔍 SEO Manager' },
             { id: 'settings', icon: <Settings size={18} />, label: '⚙ Settings' },
           ].map(item => (
@@ -376,8 +406,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
               {[
                 { label: 'Total Posts', value: stats.totalPosts, icon: <FilePlus />, color: 'bg-blue-500' },
                 { label: 'Total Views', value: stats.totalViews.toLocaleString(), icon: <Eye />, color: 'bg-purple-500' },
-                { label: 'Categories', value: stats.categories, icon: <LayoutDashboard />, color: 'bg-orange-500' },
-                { label: 'Cloud Status', value: 'ONLINE', icon: <Database />, color: 'bg-green-500' },
+                { label: 'Ad Revenue', value: '$1,245.80', icon: <Megaphone />, color: 'bg-indigo-500' },
+                { label: 'Today Traffic', value: '4,102', icon: <Activity />, color: 'bg-green-500' },
               ].map((stat, i) => (
                 <div key={i} className="bg-white dark:bg-gray-900 border border-border-color p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                   <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform ${stat.color} text-white rounded-bl-3xl`}>{stat.icon}</div>
@@ -658,15 +688,415 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        {(activeTab === 'ai' || activeTab === 'seo' || activeTab === 'ads' || activeTab === 'settings') && (
-          <div className="bg-white dark:bg-gray-900 border border-border-color p-20 rounded-2xl shadow-xl animate-in zoom-in-95 duration-500 text-center">
-             <div className="w-24 h-24 bg-red-primary/5 rounded-full flex items-center justify-center mx-auto mb-6 text-red-primary border border-red-primary/10">
-                <Settings size={48} className="animate-spin-slow" />
-             </div>
-             <h3 className="text-xl font-black uppercase tracking-widest text-gray-900 dark:text-white mb-2">{activeTab.toUpperCase()} Module</h3>
-             <p className="text-sm text-text-secondary max-w-sm mx-auto mb-8 font-medium">This module is currently being provisioned in the backend. Full integration with the AI engine and SEO trackers will be available in the next system update.</p>
-             <button onClick={() => setActiveTab('dashboard')} className="bg-red-primary text-white px-10 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-red-primary/20 hover:brightness-110 active:scale-95 transition-all">Return to Core Dashboard</button>
-          </div>
+        {(activeTab === 'ai' || activeTab === 'categories' || activeTab === 'seo' || activeTab === 'ads' || activeTab === 'settings') && (
+           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Module: AI Center */}
+              {activeTab === 'ai' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                   <div className="lg:col-span-2 space-y-6">
+                      <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
+                         <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-red-primary"><Wand2 size={18} /> AI Article Studio</h3>
+                            {aiLoading ? (
+                               <span className="text-[10px] font-black text-red-primary animate-pulse tracking-widest">AI PROCESSING...</span>
+                            ) : (
+                               <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded">ONLINE</span>
+                            )}
+                         </div>
+                         <div className="space-y-4">
+                            <textarea 
+                              value={aiPrompt}
+                              onChange={e => setAiPrompt(e.target.value)}
+                              placeholder="Describe the article you want to generate (e.g. 'SSC CGL 2025 Tier-I Result expected date and official link info')"
+                              className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl p-4 text-sm font-medium h-32 outline-none focus:ring-2 ring-red-primary/20"
+                            ></textarea>
+                            
+                            {aiResult && (
+                              <div className="p-6 bg-red-primary/5 border border-red-primary/20 rounded-xl relative group">
+                                 <h4 className="text-[9px] font-black uppercase text-red-primary mb-2">AI Generation Result</h4>
+                                 <div className="text-sm font-medium whitespace-pre-wrap max-h-60 overflow-y-auto pr-4">{aiResult}</div>
+                                 <button 
+                                   onClick={() => { setFormData({...formData, longArticle: aiResult}); setIsAdding(true); setActiveTab('posts'); }}
+                                   className="absolute top-4 right-4 bg-red-primary text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                   title="Use in Post"
+                                 >
+                                    <FilePlus size={16} />
+                                 </button>
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                {[
+                                  { id: 'article', label: 'Auto Article', icon: '📝', prompt: 'Write a detailed sarkari exam article about: ' },
+                                  { id: 'rewrite', label: 'Rewrite AI', icon: '✍️', prompt: 'Rewrite this professionally for a job portal: ' },
+                                  { id: 'seo', label: 'SEO tags', icon: '🏷️', prompt: 'Generate SEO keywords comma separated for: ' },
+                                  { id: 'faq', label: 'FAQ Gen', icon: '❓', prompt: 'Generate 5 FAQs with answers for: ' }
+                                ].map(tool => (
+                                  <button 
+                                    key={tool.id} 
+                                    onClick={async () => {
+                                      if (!aiPrompt) return alert('Enter description first');
+                                      setAiLoading(true);
+                                      try {
+                                        const res = await callAI(tool.prompt + aiPrompt, 'You are an expert content writer for CareerSetu, a leading Indian job portal. Write in professional English.');
+                                        setAiResult(res);
+                                      } finally {
+                                        setAiLoading(false);
+                                      }
+                                    }}
+                                    disabled={aiLoading}
+                                    className="bg-white dark:bg-gray-900 border border-border-color p-3 rounded-xl text-center hover:border-red-primary hover:bg-red-primary/5 transition-all group disabled:opacity-50"
+                                  >
+                                     <div className="text-xl mb-1">{tool.icon}</div>
+                                     <div className="text-[9px] font-black uppercase tracking-widest text-text-secondary group-hover:text-red-primary">{tool.label}</div>
+                                  </button>
+                                ))}
+                            </div>
+                            <button 
+                              onClick={async () => {
+                                if (!aiPrompt) return alert('Enter description first');
+                                setAiLoading(true);
+                                try {
+                                  const res = await callAI('Write a full comprehensive job portal article including all sections for: ' + aiPrompt, 'You are a professional SEO content creator for CareerSetu.');
+                                  setAiResult(res);
+                                } finally {
+                                  setAiLoading(false);
+                                }
+                              }}
+                              disabled={aiLoading}
+                              className="w-full bg-red-primary text-white py-4 rounded-xl font-black uppercase tracking-[3px] shadow-lg shadow-red-primary/20 flex items-center justify-center gap-3 disabled:opacity-50"
+                            >
+                               <Sparkles size={20} /> {aiLoading ? 'AI is Writing...' : 'Generate with OpenCode AI'}
+                            </button>
+                         </div>
+                      </div>
+
+                      <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
+                         <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2"><Cpu size={18} className="text-blue-600" /> AI SEO & Metadata</h3>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color">
+                               <p className="text-[9px] font-black uppercase text-text-secondary opacity-50 mb-2">Meta Description Gen</p>
+                               <div className="flex gap-2">
+                                  <input type="text" placeholder="Post Title" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded-lg px-3 py-1.5 text-[10px] font-bold" />
+                                  <button className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase">Generate</button>
+                               </div>
+                            </div>
+                            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color">
+                               <p className="text-[9px] font-black uppercase text-text-secondary opacity-50 mb-2">Keyword Extractor</p>
+                               <div className="flex gap-2">
+                                  <input type="text" placeholder="Paste Content Snippet" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded-lg px-3 py-1.5 text-[10px] font-bold" />
+                                  <button className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase">Extract</button>
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="space-y-6">
+                      <div className="bg-gray-900 text-white p-6 rounded-2xl shadow-xl shadow-gray-900/40">
+                         <h4 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-2"><Globe size={16} className="text-red-primary" /> AI Usage Stats</h4>
+                         <div className="space-y-4">
+                            <div>
+                               <div className="flex justify-between text-[10px] font-bold uppercase mb-1">
+                                  <span>Tokens Used</span>
+                                  <span>4,500 / 50,000</span>
+                               </div>
+                               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                  <div className="h-full bg-red-primary w-[9%]"></div>
+                               </div>
+                            </div>
+                            <div>
+                               <div className="flex justify-between text-[10px] font-bold uppercase mb-1">
+                                  <span>Articles Gen</span>
+                                  <span>12 / 100</span>
+                               </div>
+                               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                  <div className="h-full bg-blue-500 w-[12%]"></div>
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-900 border border-border-color p-6 rounded-2xl shadow-sm">
+                         <h4 className="text-xs font-black uppercase tracking-widest mb-4">AI History</h4>
+                         <div className="space-y-3">
+                            {[1, 2, 3].map(i => (
+                              <div key={i} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-border-color">
+                                 <div className="w-8 h-8 rounded-lg bg-red-primary/10 text-red-primary flex items-center justify-center font-bold text-xs">AI</div>
+                                 <div className="min-w-0">
+                                    <p className="text-[10px] font-bold truncate">Article: SSC CHSL 2025...</p>
+                                    <p className="text-[8px] text-text-secondary">2 hours ago</p>
+                                 </div>
+                              </div>
+                            ))}
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Categories */}
+              {activeTab === 'categories' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                   <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm h-fit">
+                      <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2"><List size={18} className="text-red-primary" /> Add New Category</h3>
+                      <form className="space-y-4">
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">Category Name</label>
+                            <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" placeholder="e.g. UPSC" />
+                         </div>
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">Hindi Name</label>
+                            <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" placeholder="e.g. संघ लोक सेवा आयोग" />
+                         </div>
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">SEO Slug</label>
+                            <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" placeholder="upsc-jobs" />
+                         </div>
+                         <button className="w-full bg-red-primary text-white py-3 rounded-xl font-black uppercase tracking-widest mt-2 shadow-lg shadow-red-primary/20">Create Category</button>
+                      </form>
+                   </div>
+                   <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-border-color rounded-2xl shadow-sm overflow-hidden">
+                      <div className="px-8 py-5 border-b border-border-color bg-gray-50 dark:bg-gray-800/20">
+                         <h3 className="text-[10px] font-black uppercase tracking-[3px]">Active Categories</h3>
+                      </div>
+                      <div className="divide-y divide-border-color">
+                         {Object.entries(categoryMap).map(([key, val]) => (
+                           <div key={key} className="p-4 px-8 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                              <div className="flex items-center gap-4">
+                                 <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-red-primary uppercase shadow-sm">{key.slice(0, 2)}</div>
+                                 <div>
+                                    <h4 className="text-sm font-black">{val.label}</h4>
+                                    <p className="text-[10px] font-bold text-text-secondary opacity-60 uppercase">{val.hindi}</p>
+                                 </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                 <span className="text-[10px] font-black text-blue-link bg-blue-50 px-3 py-1 rounded-full">{posts.filter(p => p.category === key).length} Posts</span>
+                                 <button className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center hover:bg-red-primary hover:text-white transition-all"><Edit2 size={14}/></button>
+                                 <button className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center hover:bg-red-primary hover:text-white transition-all"><Trash2 size={14}/></button>
+                              </div>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Newsletter */}
+              {activeTab === 'newsletter' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                   <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm h-fit">
+                      <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2"><Mail size={18} className="text-red-primary" /> Create Campaign</h3>
+                      <form className="space-y-4">
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">Subject Line</label>
+                            <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" placeholder="Latest Jobs Update" />
+                         </div>
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">Email Template</label>
+                            <select className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold">
+                               <option>Modern Newsletter</option>
+                               <option>Breaking News Alert</option>
+                               <option>Weekly Digest</option>
+                            </select>
+                         </div>
+                         <button type="button" className="w-full bg-red-primary text-white py-3 rounded-xl font-black uppercase tracking-widest mt-2 shadow-lg shadow-red-primary/20">Send to 1,245 Subscribers</button>
+                      </form>
+                   </div>
+                   <div className="lg:col-span-2 space-y-6">
+                      <div className="bg-white dark:bg-gray-900 border border-border-color rounded-2xl shadow-sm overflow-hidden">
+                         <div className="px-8 py-5 border-b border-border-color bg-gray-50 dark:bg-gray-800/20">
+                            <h3 className="text-[10px] font-black uppercase tracking-[3px]">Subscriber List</h3>
+                         </div>
+                         <div className="max-h-[400px] overflow-y-auto divide-y divide-border-color">
+                            {[1, 2, 3, 4, 5].map(i => (
+                              <div key={i} className="p-4 px-8 flex justify-between items-center hover:bg-gray-50">
+                                 <div>
+                                    <p className="text-sm font-bold">user{i}@example.com</p>
+                                    <p className="text-[9px] text-text-secondary uppercase">Subscribed on: 12 Jan 2025</p>
+                                 </div>
+                                 <span className="text-[9px] font-black text-green-600 bg-green-500/10 px-3 py-1 rounded-full">ACTIVE</span>
+                              </div>
+                            ))}
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: SEO */}
+              {activeTab === 'seo' && (
+                <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
+                   <div className="flex justify-between items-center mb-8">
+                     <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-green-600 font-black"><Target size={18} /> Search Engine Optimization</h3>
+                     <button className="bg-green-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-600/20">Update SEO Global</button>
+                   </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-6">
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">Website Title (Home)</label>
+                            <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm font-bold" defaultValue="CareerSetu - Sarkari Result, Latest Jobs, Admit Card" />
+                         </div>
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">Meta Description</label>
+                            <textarea rows={4} className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm font-medium" defaultValue="Find latest government jobs, results, answer keys and admit cards on CareerSetu. The most trusted portal for sarkari naukri updates in Hindi & English."></textarea>
+                         </div>
+                      </div>
+                      <div className="space-y-6">
+                         <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-border-color">
+                            <h4 className="text-[10px] font-black uppercase mb-4 tracking-widest">Sitemap & Discovery</h4>
+                            <div className="space-y-4">
+                               <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-xl border border-border-color">
+                                  <div className="text-[10px] font-bold uppercase tracking-widest">Generate sitemap.xml</div>
+                                  <button className="bg-red-primary text-white px-3 py-1 rounded-md text-[9px] font-black uppercase">Run Now</button>
+                               </div>
+                               <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-xl border border-border-color">
+                                  <div className="text-[10px] font-bold uppercase tracking-widest">Ping Google Indexer</div>
+                                  <button className="bg-blue-600 text-white px-3 py-1 rounded-md text-[9px] font-black uppercase">Execute</button>
+                               </div>
+                            </div>
+                         </div>
+                         <div className="p-6 bg-green-50 dark:bg-green-900/10 rounded-2xl border border-green-200">
+                            <h4 className="text-[10px] font-bold text-green-700 uppercase mb-2 tracking-widest">SEO Health Score</h4>
+                            <div className="text-3xl font-black text-green-700">94/100</div>
+                            <p className="text-[9px] font-bold text-green-600 uppercase mt-1">Excellent: Optimization optimal</p>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Ads */}
+              {activeTab === 'ads' && (
+                <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
+                   <div className="flex justify-between items-center mb-8">
+                     <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-indigo-600"><Megaphone size={18} /> Ad Central</h3>
+                     <button className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20">Apply Ad Layout</button>
+                   </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-6">
+                         <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-border-color">
+                            <div className="flex justify-between items-center mb-4">
+                               <h4 className="text-[10px] font-black uppercase tracking-widest">AdSense Approval</h4>
+                               <span className="text-[9px] font-bold text-green-500">ACTIVE</span>
+                            </div>
+                            <div className="space-y-1.5">
+                               <label className="text-[10px] font-black uppercase text-text-secondary">Publisher ID (ca-pub)</label>
+                               <input type="text" className="w-full bg-white dark:bg-gray-900 border border-border-color rounded-lg px-4 py-2 text-sm font-mono" defaultValue="ca-pub-1234567890123456" />
+                            </div>
+                         </div>
+                         <div className="p-6 border border-border-color rounded-2xl space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Ad Placement Toggles</h4>
+                            {[
+                               { label: 'Header Sticky Ads', active: true },
+                               { label: 'Inside Article Ads', active: true },
+                               { label: 'Sidebar Floating Ads', active: false },
+                               { label: 'Footer Announcement', active: true }
+                            ].map(ad => (
+                               <div key={ad.label} className="flex justify-between items-center py-2 border-b border-border-color last:border-0">
+                                  <span className="text-xs font-bold">{ad.label}</span>
+                                  <div className={`w-10 h-5 rounded-full relative p-0.5 cursor-pointer transition-colors ${ad.active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
+                                     <div className={`w-4 h-4 rounded-full bg-white transition-all ${ad.active ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                                  </div>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
+                      <div className="space-y-6">
+                         <div className="bg-indigo-900 text-white p-8 rounded-2xl shadow-xl shadow-indigo-900/40 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-8 opacity-10"><Megaphone size={120} /></div>
+                            <p className="text-[10px] font-black uppercase tracking-[4px] mb-2 opacity-60">Estimated Revenue</p>
+                            <h3 className="text-4xl font-black mb-4">$1,245.80</h3>
+                            <div className="flex items-center gap-2 text-xs font-bold bg-white/10 w-fit px-3 py-1 rounded-full">
+                               <Activity size={14} className="text-green-400" /> +12.5% this week
+                            </div>
+                         </div>
+                         <div className="bg-white dark:bg-gray-900 border border-border-color p-6 rounded-2xl shadow-sm">
+                            <h4 className="text-xs font-black uppercase tracking-widest mb-4">Ad History & Clicks</h4>
+                            <div className="h-40 flex items-end gap-1">
+                               {[20, 50, 30, 80, 40, 60, 90, 70, 40, 60, 50, 80].map((h, i) => (
+                                 <div key={i} className="flex-1 bg-indigo-100 dark:bg-indigo-900/20 rounded-t-sm relative group">
+                                    <div className="absolute bottom-0 w-full bg-indigo-500 rounded-t-sm" style={{ height: h + '%' }}></div>
+                                 </div>
+                               ))}
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Settings */}
+              {activeTab === 'settings' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                   <div className="lg:col-span-2 space-y-8">
+                      <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
+                         <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2"><Settings size={18} className="text-red-primary" /> General Configuration</h3>
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-1.5">
+                               <label className="text-[10px] font-black uppercase text-text-secondary">Organization Name</label>
+                               <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm font-bold" defaultValue="CareerSetu India" />
+                            </div>
+                            <div className="space-y-1.5">
+                               <label className="text-[10px] font-black uppercase text-text-secondary">Public Contact Email</label>
+                               <input type="email" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm font-bold" defaultValue="career@careersetu.com" />
+                            </div>
+                            <div className="space-y-1.5 md:col-span-2">
+                               <label className="text-[10px] font-black uppercase text-text-secondary">Footer Copyright Text</label>
+                               <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm font-bold" defaultValue="© 2025 CareerSetu. All Rights Reserved. | सरकारी नौकरी, रिजल्ट और एडमिट कार्ड" />
+                            </div>
+                         </div>
+                      </div>
+
+                      <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
+                         <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2 text-red-primary font-black"><LockIcon size={18} /> Security & System</h3>
+                         <div className="space-y-6">
+                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color">
+                               <div>
+                                  <p className="text-xs font-black uppercase tracking-widest">Maintenance Mode</p>
+                                  <p className="text-[10px] text-text-secondary pt-1 font-medium">Temporarily disable public access to the portal</p>
+                               </div>
+                               <div className="w-12 h-6 bg-gray-300 dark:bg-gray-700 rounded-full relative p-1 cursor-pointer">
+                                  <div className="w-4 h-4 rounded-full bg-white"></div>
+                               </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               <button className="bg-gray-900 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"><History size={16} /> Activity Logs</button>
+                               <button className="bg-blue-600 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"><Database size={16} /> Database Backup</button>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="space-y-6">
+                      <div className="bg-red-primary/5 border border-red-primary/20 p-8 rounded-2xl text-center">
+                         <div className="w-16 h-16 bg-red-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-red-primary">
+                            <Shield size={32} />
+                         </div>
+                         <h4 className="text-xs font-black uppercase mb-2 tracking-widest">Super Admin Credentials</h4>
+                         <p className="text-[10px] text-text-secondary leading-relaxed mb-6 font-medium">To update your master password, please use the system reset protocol or contact dev support.</p>
+                         <button className="w-full bg-red-primary text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-primary/20">Change Password</button>
+                      </div>
+                      <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl">
+                         <h4 className="text-xs font-black uppercase mb-4 tracking-widest">System Info</h4>
+                         <div className="space-y-3">
+                            <div className="flex justify-between text-[10px] font-bold border-b border-border-color pb-2">
+                               <span className="text-text-secondary uppercase">Framework</span>
+                               <span>React 19 + Vite</span>
+                            </div>
+                            <div className="flex justify-between text-[10px] font-bold border-b border-border-color pb-2">
+                               <span className="text-text-secondary uppercase">Version</span>
+                               <span>v2.8.4-PRO</span>
+                            </div>
+                            <div className="flex justify-between text-[10px] font-bold border-b border-border-color pb-2">
+                               <span className="text-text-secondary uppercase">Server Node</span>
+                               <span>AS-SOUTH-1</span>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+           </div>
         )}
       </main>
     </div>
