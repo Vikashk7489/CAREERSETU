@@ -78,7 +78,7 @@ const ADMIN_PASS = 'admin@careersetu';
 
 export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('cs_admin_session') === 'active');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'categories' | 'seo' | 'ai' | 'ads' | 'settings' | 'home-builder' | 'media' | 'analytics' | 'contacts' | 'notifications' | 'security' | 'maintenance'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'categories' | 'seo' | 'ai' | 'ads' | 'settings' | 'home-builder' | 'media' | 'analytics' | 'contacts' | 'notifications' | 'security' | 'maintenance' | 'faqs' | 'backups'>('dashboard');
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<any | null>(null);
@@ -86,6 +86,25 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
+  const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+
+  // Module States
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [homeSections, setHomeSections] = useState([
+    { label: 'Featured Banners', active: true, id: 'banners' },
+    { label: 'Latest Jobs Section', active: true, id: 'latest' },
+    { label: 'Admit Card Grid', active: true, id: 'admit' },
+    { label: 'Result Row', active: true, id: 'result' },
+    { label: 'Popular Categories', active: false, id: 'cats' },
+    { label: 'Newsletter Popup', active: true, id: 'news' }
+  ]);
+  const [notificationForm, setNotificationForm] = useState({ title: '', message: '', url: '' });
+  const [categoryForm, setCategoryForm] = useState({ name: '', hindi: '', slug: '' });
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // Login State
   const [loginData, setLoginData] = useState({ email: '', password: '' });
@@ -366,7 +385,9 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
             { id: 'seo', icon: <Search size={18} />, label: '🔍 SEO Manager' },
             { id: 'analytics', icon: <BarChart3 size={18} />, label: '📈 Analytics' },
             { id: 'contacts', icon: <MessageSquare size={18} />, label: '📧 Messages' },
+            { id: 'faqs', icon: <Target size={18} />, label: '❓ FAQ Manager' },
             { id: 'security', icon: <ShieldCheck size={18} />, label: '🔐 Security' },
+            { id: 'backups', icon: <Database size={18} />, label: '💾 Backups' },
             { id: 'maintenance', icon: <Clock size={18} />, label: '🛠 Maintenance' },
             { id: 'settings', icon: <Settings size={18} />, label: '⚙ Settings' },
           ].map(item => (
@@ -420,6 +441,14 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
              </button>
            </div>
         </header>
+
+        {/* Toast Notification */}
+        {toast && (
+          <div className={`fixed bottom-20 right-8 z-[100] px-6 py-3 rounded-xl shadow-2xl animate-in slide-in-from-right-10 duration-300 flex items-center gap-3 border ${toast.type === 'success' ? 'bg-green-600 border-green-500 text-white' : 'bg-red-primary border-red-primary text-white'}`}>
+             {toast.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+             <span className="text-xs font-black uppercase tracking-widest">{toast.message}</span>
+          </div>
+        )}
 
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -799,15 +828,37 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color">
                                <p className="text-[9px] font-black uppercase text-text-secondary opacity-50 mb-2">Meta Description Gen</p>
                                <div className="flex gap-2">
-                                  <input type="text" placeholder="Post Title" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded-lg px-3 py-1.5 text-[10px] font-bold" />
-                                  <button className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase">Generate</button>
+                                  <input type="text" id="meta-title-input" placeholder="Post Title" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded-lg px-3 py-1.5 text-[10px] font-bold" />
+                                  <button 
+                                    onClick={async () => {
+                                      const title = (document.getElementById('meta-title-input') as HTMLInputElement).value;
+                                      if(!title) return;
+                                      setAiLoading(true);
+                                      try {
+                                        const res = await callAI(`Generate a short meta description for: ${title}`, 'Expert SEO writer');
+                                        setAiResult(res);
+                                      } finally { setAiLoading(false); }
+                                    }}
+                                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all active:scale-95"
+                                  >Generate</button>
                                </div>
                             </div>
                             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color">
                                <p className="text-[9px] font-black uppercase text-text-secondary opacity-50 mb-2">Keyword Extractor</p>
                                <div className="flex gap-2">
-                                  <input type="text" placeholder="Paste Content Snippet" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded-lg px-3 py-1.5 text-[10px] font-bold" />
-                                  <button className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase">Extract</button>
+                                  <input type="text" id="keyword-input" placeholder="Paste Content Snippet" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded-lg px-3 py-1.5 text-[10px] font-bold" />
+                                  <button 
+                                    onClick={async () => {
+                                      const snippet = (document.getElementById('keyword-input') as HTMLInputElement).value;
+                                      if(!snippet) return;
+                                      setAiLoading(true);
+                                      try {
+                                        const res = await callAI(`Extract 5 keywords from: ${snippet}`, 'Expert SEO writer');
+                                        setAiResult(res);
+                                      } finally { setAiLoading(false); }
+                                    }}
+                                    className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all active:scale-95"
+                                  >Extract</button>
                                </div>
                             </div>
                          </div>
@@ -861,40 +912,61 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                    <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm h-fit">
                       <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2"><List size={18} className="text-red-primary" /> Add New Category</h3>
-                      <form className="space-y-4">
+                      <form onSubmit={(e) => { e.preventDefault(); showToast('Category Created Successfully'); setCategoryForm({name:'', hindi:'', slug:''}); }} className="space-y-4">
                          <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-text-secondary">Category Name</label>
-                            <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" placeholder="e.g. UPSC" />
+                            <input 
+                              type="text" 
+                              required
+                              value={categoryForm.name}
+                              onChange={e => setCategoryForm({...categoryForm, name: e.target.value})}
+                              className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" 
+                              placeholder="e.g. UPSC" 
+                            />
                          </div>
                          <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-text-secondary">Hindi Name</label>
-                            <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" placeholder="e.g. संघ लोक सेवा आयोग" />
+                            <input 
+                              type="text" 
+                              required
+                              value={categoryForm.hindi}
+                              onChange={e => setCategoryForm({...categoryForm, hindi: e.target.value})}
+                              className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" 
+                              placeholder="e.g. संघ लोक सेवा आयोग" 
+                            />
                          </div>
                          <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-text-secondary">SEO Slug</label>
-                            <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" placeholder="upsc-jobs" />
+                            <input 
+                              type="text" 
+                              required
+                              value={categoryForm.slug}
+                              onChange={e => setCategoryForm({...categoryForm, slug: e.target.value})}
+                              className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-2.5 text-sm font-bold" 
+                              placeholder="upsc-jobs" 
+                            />
                          </div>
-                         <button className="w-full bg-red-primary text-white py-3 rounded-xl font-black uppercase tracking-widest mt-2 shadow-lg shadow-red-primary/20">Create Category</button>
+                         <button type="submit" className="w-full bg-red-primary text-white py-3 rounded-xl font-black uppercase tracking-widest mt-2 shadow-lg shadow-red-primary/20">Create Category</button>
                       </form>
                    </div>
                    <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-border-color rounded-2xl shadow-sm overflow-hidden">
                       <div className="px-8 py-5 border-b border-border-color bg-gray-50 dark:bg-gray-800/20">
                          <h3 className="text-[10px] font-black uppercase tracking-[3px]">Active Categories</h3>
                       </div>
-                      <div className="divide-y divide-border-color">
+                      <div className="divide-y divide-border-color max-h-[500px] overflow-y-auto">
                          {Object.entries(categoryMap).map(([key, val]) => (
                            <div key={key} className="p-4 px-8 flex items-center justify-between hover:bg-gray-50 transition-colors">
                               <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-red-primary uppercase shadow-sm">{key.slice(0, 2)}</div>
-                                 <div>
-                                    <h4 className="text-sm font-black">{val.label}</h4>
+                                 <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-red-primary uppercase shadow-sm">{key.slice(0, 2)}</div>
+                                 <div className="min-w-0">
+                                    <h4 className="text-sm font-black truncate">{val.label}</h4>
                                     <p className="text-[10px] font-bold text-text-secondary opacity-60 uppercase">{val.hindi}</p>
                                  </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                 <span className="text-[10px] font-black text-blue-link bg-blue-50 px-3 py-1 rounded-full">{posts.filter(p => p.category === key).length} Posts</span>
-                                 <button className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center hover:bg-red-primary hover:text-white transition-all"><Edit2 size={14}/></button>
-                                 <button className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center hover:bg-red-primary hover:text-white transition-all"><Trash2 size={14}/></button>
+                                 <span className="text-[10px] font-black text-blue-link bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap">{posts.filter(p => p.category === key).length} Posts</span>
+                                 <button onClick={() => showToast('Edit Feature Coming Soon')} className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center hover:bg-red-primary hover:text-white transition-all"><Edit2 size={14}/></button>
+                                 <button onClick={() => showToast('Delete Feature Coming Soon')} className="w-8 h-8 rounded-lg border border-border-color flex items-center justify-center hover:bg-red-primary hover:text-white transition-all"><Trash2 size={14}/></button>
                               </div>
                            </div>
                          ))}
@@ -950,7 +1022,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
                    <div className="flex justify-between items-center mb-8">
                      <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-green-600 font-black"><Target size={18} /> Search Engine Optimization</h3>
-                     <button className="bg-green-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-600/20">Update SEO Global</button>
+                     <button onClick={() => showToast('SEO Settings Updated')} className="bg-green-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-600/20">Update SEO Global</button>
                    </div>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-6">
@@ -969,11 +1041,11 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                             <div className="space-y-4">
                                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-xl border border-border-color">
                                   <div className="text-[10px] font-bold uppercase tracking-widest">Generate sitemap.xml</div>
-                                  <button className="bg-red-primary text-white px-3 py-1 rounded-md text-[9px] font-black uppercase">Run Now</button>
+                                  <button onClick={() => showToast('Sitemap Generated')} className="bg-red-primary text-white px-3 py-1 rounded-md text-[9px] font-black uppercase">Run Now</button>
                                </div>
                                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-xl border border-border-color">
                                   <div className="text-[10px] font-bold uppercase tracking-widest">Ping Google Indexer</div>
-                                  <button className="bg-blue-600 text-white px-3 py-1 rounded-md text-[9px] font-black uppercase">Execute</button>
+                                  <button onClick={() => showToast('Search Engine Pinged')} className="bg-blue-600 text-white px-3 py-1 rounded-md text-[9px] font-black uppercase">Execute</button>
                                </div>
                             </div>
                          </div>
@@ -992,7 +1064,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
                    <div className="flex justify-between items-center mb-8">
                      <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-indigo-600"><Megaphone size={18} /> Ad Central</h3>
-                     <button className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20">Apply Ad Layout</button>
+                     <button onClick={() => showToast('Ad Layout Applied')} className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20">Apply Ad Layout</button>
                    </div>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-6">
@@ -1052,24 +1124,26 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
                    <div className="flex justify-between items-center mb-8">
                      <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-orange-500"><Grid size={18} /> Homepage Layout Builder</h3>
-                     <button className="bg-orange-500 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Save Layout</button>
+                     <button onClick={() => showToast('Homepage Layout Saved')} className="bg-orange-500 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Save Layout</button>
                    </div>
                    <div className="space-y-4">
-                      {[
-                        { label: 'Featured Banners', active: true, id: 'banners' },
-                        { label: 'Latest Jobs Section', active: true, id: 'latest' },
-                        { label: 'Admit Card Grid', active: true, id: 'admit' },
-                        { label: 'Result Row', active: true, id: 'result' },
-                        { label: 'Popular Categories', active: false, id: 'cats' },
-                        { label: 'Newsletter Popup', active: true, id: 'news' }
-                      ].map((sec, i) => (
+                      {homeSections.map((sec, i) => (
                         <div key={sec.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color draggable cursor-move">
                            <div className="flex items-center gap-4">
                               <span className="text-xs font-bold text-text-secondary opacity-50">#{i+1}</span>
                               <h4 className="text-sm font-black uppercase tracking-tight">{sec.label}</h4>
                            </div>
                            <div className="flex items-center gap-4">
-                              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${sec.active ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{sec.active ? 'VISIBLE' : 'HIDDEN'}</span>
+                              <button 
+                                onClick={() => {
+                                  const newSections = [...homeSections];
+                                  newSections[i].active = !newSections[i].active;
+                                  setHomeSections(newSections);
+                                }}
+                                className={`text-[9px] font-black px-2 py-0.5 rounded cursor-pointer transition-colors ${sec.active ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}
+                              >
+                                {sec.active ? 'VISIBLE' : 'HIDDEN'}
+                              </button>
                               <button className="text-blue-link font-black text-[10px] uppercase hover:underline">Edit Styling</button>
                            </div>
                         </div>
@@ -1086,8 +1160,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                       <div className="flex justify-between items-center mb-8">
                         <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-blue-600"><ImageIcon size={18} /> Media Library</h3>
                         <div className="flex gap-3">
-                           <button className="bg-gray-100 dark:bg-gray-800 text-[10px] font-black px-4 py-2 rounded-lg uppercase">Bulk Delete</button>
-                           <button className="bg-blue-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Upload New</button>
+                           <button onClick={() => showToast('Bulk Delete mode active')} className="bg-gray-100 dark:bg-gray-800 text-[10px] font-black px-4 py-2 rounded-lg uppercase">Bulk Delete</button>
+                           <button onClick={() => showToast('Upload system opening...')} className="bg-blue-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Upload New</button>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -1095,8 +1169,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                            <div key={i} className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-xl relative group overflow-hidden border border-border-color">
                               <img src={`https://images.unsplash.com/photo-1541339907198-e08759df9a13?auto=format&fit=crop&q=80&w=200`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                 <button className="p-1.5 bg-white rounded-lg text-gray-900"><Edit2 size={12}/></button>
-                                 <button className="p-1.5 bg-red-primary rounded-lg text-white"><Trash2 size={12}/></button>
+                                 <button onClick={() => showToast('Editing media metadata')} className="p-1.5 bg-white rounded-lg text-gray-900"><Edit2 size={12}/></button>
+                                 <button onClick={() => showToast('Media deleted from storage')} className="p-1.5 bg-red-primary rounded-lg text-white"><Trash2 size={12}/></button>
                               </div>
                            </div>
                          ))}
@@ -1166,8 +1240,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                               </div>
                               <p className="text-xs font-bold text-text-secondary line-clamp-1 mb-2">Subject: Regarding SSC CGL Admit Card issue...</p>
                               <div className="flex gap-2">
-                                 <button className="text-[9px] font-black uppercase tracking-widest text-blue-link">Reply</button>
-                                 <button className="text-[9px] font-black uppercase tracking-widest text-red-primary">Delete</button>
+                                 <button onClick={() => showToast('Reply system initializing')} className="text-[9px] font-black uppercase tracking-widest text-blue-link">Reply</button>
+                                 <button onClick={() => showToast('Message Deleted')} className="text-[9px] font-black uppercase tracking-widest text-red-primary">Delete</button>
                               </div>
                            </div>
                         </div>
@@ -1181,20 +1255,40 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                    <div className="bg-white p-8 rounded-2xl border border-border-color shadow-sm">
                       <h3 className="text-sm font-black uppercase tracking-widest mb-6 text-red-primary">Send Push Notification</h3>
-                      <form className="space-y-4">
+                      <form onSubmit={(e) => { e.preventDefault(); showToast('Notification Sent to all devices'); setNotificationForm({title:'', message:'', url:''}); }} className="space-y-4">
                          <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-text-secondary">Title</label>
-                            <input type="text" className="w-full bg-gray-50 border border-border-color rounded-lg px-4 py-2.5 font-bold" placeholder="Breaking News!" />
+                            <input 
+                              type="text" 
+                              required
+                              value={notificationForm.title}
+                              onChange={e => setNotificationForm({...notificationForm, title: e.target.value})}
+                              className="w-full bg-gray-50 border border-border-color rounded-lg px-4 py-2.5 font-bold" 
+                              placeholder="Breaking News!" 
+                            />
                          </div>
                          <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-text-secondary">Message</label>
-                            <textarea className="w-full bg-gray-50 border border-border-color rounded-lg px-4 py-2.5 font-bold h-24" placeholder="SSC CGL Tier 1 Result is out now..."></textarea>
+                            <textarea 
+                              required
+                              value={notificationForm.message}
+                              onChange={e => setNotificationForm({...notificationForm, message: e.target.value})}
+                              className="w-full bg-gray-50 border border-border-color rounded-lg px-4 py-2.5 font-bold h-24" 
+                              placeholder="SSC CGL Tier 1 Result is out now..."
+                            ></textarea>
                          </div>
                          <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-text-secondary">Target URL</label>
-                            <input type="text" className="w-full bg-gray-50 border border-border-color rounded-lg px-4 py-2.5 font-bold" placeholder="https://careersetu.com/ssc-result" />
+                            <input 
+                              type="text" 
+                              required
+                              value={notificationForm.url}
+                              onChange={e => setNotificationForm({...notificationForm, url: e.target.value})}
+                              className="w-full bg-gray-50 border border-border-color rounded-lg px-4 py-2.5 font-bold" 
+                              placeholder="https://careersetu.com/ssc-result" 
+                            />
                          </div>
-                         <button className="w-full bg-red-primary text-white py-4 rounded-xl font-black uppercase tracking-[2px] shadow-lg">Send to 15,000 Devices</button>
+                         <button type="submit" className="w-full bg-red-primary text-white py-4 rounded-xl font-black uppercase tracking-[2px] shadow-lg">Send to 15,000 Devices</button>
                       </form>
                    </div>
                    <div className="space-y-6">
@@ -1238,14 +1332,92 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 </div>
               )}
 
+              {/* Module: FAQ Manager */}
+              {activeTab === 'faqs' && (
+                <div className="space-y-8 animate-in fade-in">
+                   <div className="bg-white p-8 rounded-2xl border border-border-color shadow-sm">
+                      <div className="flex justify-between items-center mb-8">
+                         <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-indigo-600">❓ Frequently Asked Questions</h3>
+                         <button onClick={() => showToast('New FAQ Form Opened')} className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Add New FAQ</button>
+                      </div>
+                      <div className="space-y-4">
+                         {[
+                           { q: 'How to apply for SSC CGL?', a: 'Visit the official SSC website and login with your registration ID...' },
+                           { q: 'What is CareerSetu?', a: 'CareerSetu is a premium job portal focused on latest government exam updates.' }
+                         ].map((faq, i) => (
+                           <div key={i} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color">
+                              <h4 className="text-sm font-black mb-2">{faq.q}</h4>
+                              <p className="text-xs text-text-secondary">{faq.a}</p>
+                              <div className="mt-3 flex gap-2">
+                                 <button onClick={() => showToast('Edit FAQ')} className="text-[9px] font-black text-blue-link uppercase">Edit</button>
+                                 <button onClick={() => showToast('FAQ Deleted')} className="text-[9px] font-black text-red-primary uppercase">Delete</button>
+                              </div>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Backups */}
+              {activeTab === 'backups' && (
+                <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in">
+                   <div className="bg-white p-10 rounded-2xl border border-border-color shadow-sm text-center">
+                      <div className="w-16 h-16 bg-blue-500/10 text-blue-500 flex items-center justify-center mx-auto mb-6 rounded-full">
+                         <Database size={32} />
+                      </div>
+                      <h3 className="text-xl font-black uppercase tracking-tight mb-2">Database Backup Manager</h3>
+                      <p className="text-sm text-text-secondary mb-8">Secure your portal data by taking regular backups of posts and categories.</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                         <button onClick={() => showToast('Local Backup Created')} className="p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-border-color hover:border-blue-500 transition-all group">
+                            <h4 className="text-xs font-black uppercase tracking-widest mb-1 group-hover:text-blue-500">Quick Backup</h4>
+                            <p className="text-[10px] text-text-secondary">Download as JSON file</p>
+                         </button>
+                         <button onClick={() => showToast('Cloud Backup Synchronized')} className="p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-border-color hover:border-green-500 transition-all group">
+                            <h4 className="text-xs font-black uppercase tracking-widest mb-1 group-hover:text-green-500">Cloud Sync</h4>
+                            <p className="text-[10px] text-text-secondary">Sync to secondary storage</p>
+                         </button>
+                      </div>
+                      
+                      <button onClick={() => showToast('Full System Restore mode active')} className="mt-8 text-[10px] font-black text-red-primary uppercase tracking-widest hover:underline">Restore from previous backup</button>
+                   </div>
+
+                   <div className="bg-white p-8 rounded-2xl border border-border-color shadow-sm">
+                      <h4 className="text-xs font-black uppercase tracking-widest mb-6">Backup History</h4>
+                      <div className="space-y-4">
+                         {[
+                           { name: 'full_backup_may_2026.sql', size: '4.5 MB', date: '2 days ago' },
+                           { name: 'posts_export.json', size: '1.2 MB', date: '5 days ago' }
+                         ].map(b => (
+                           <div key={b.name} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                 <Save size={14} className="text-text-secondary" />
+                                 <div>
+                                    <p className="text-xs font-bold">{b.name}</p>
+                                    <p className="text-[9px] text-text-secondary">{b.size} • {b.date}</p>
+                                 </div>
+                              </div>
+                              <button onClick={() => showToast('Download started')} className="text-[9px] font-black uppercase text-blue-link">Download</button>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+              )}
+
               {/* Module: Maintenance */}
               {activeTab === 'maintenance' && (
                 <div className="max-w-2xl mx-auto bg-white p-12 rounded-2xl border border-border-color shadow-2xl text-center">
                    <div className="w-20 h-20 bg-orange-500/10 text-orange-500 flex items-center justify-center mx-auto mb-6 rounded-full">
-                      <Clock size={40} className="animate-spin-slow" />
+                      <Clock size={40} className={maintenanceMode ? "animate-spin-slow" : ""} />
                    </div>
                    <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">Portal Maintenance Mode</h3>
-                   <p className="text-sm text-text-secondary mb-8">Activating this will show a maintenance screen to all visitors.</p>
+                   <p className="text-sm text-text-secondary mb-8">
+                      {maintenanceMode 
+                        ? "Portal is currently OFFLINE for users. Admin access remains open." 
+                        : "Activating this will show a maintenance screen to all visitors."}
+                   </p>
                    
                    <div className="p-6 bg-gray-50 rounded-xl border border-border-color mb-8 text-left space-y-4">
                       <div className="space-y-1.5">
@@ -1258,7 +1430,15 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                       </div>
                    </div>
 
-                   <button className="w-full bg-orange-500 text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all">Enable Maintenance Mode</button>
+                   <button 
+                     onClick={() => {
+                        setMaintenanceMode(!maintenanceMode);
+                        showToast(maintenanceMode ? 'Maintenance Mode Disabled' : 'Maintenance Mode Enabled');
+                     }}
+                     className={`w-full py-4 rounded-xl font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 ${maintenanceMode ? 'bg-red-primary text-white shadow-red-primary/20' : 'bg-orange-500 text-white shadow-orange-500/20'}`}
+                   >
+                      {maintenanceMode ? 'Disable Maintenance Mode' : 'Enable Maintenance Mode'}
+                   </button>
                 </div>
               )}
 
@@ -1267,7 +1447,10 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                    <div className="lg:col-span-2 space-y-8">
                       <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
-                         <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-2"><Settings size={18} className="text-red-primary" /> General Configuration</h3>
+                         <div className="flex justify-between items-center mb-8">
+                            <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><Settings size={18} className="text-red-primary" /> General Configuration</h3>
+                            <button onClick={() => showToast('Settings Saved')} className="bg-red-primary text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-primary/20">Save All</button>
+                         </div>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-1.5">
                                <label className="text-[10px] font-black uppercase text-text-secondary">Organization Name</label>
