@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reusable helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function emailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'kumarprince80970@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Admins collection - only admins can modify, but admins can read their own
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Posts collection
+    match /posts/{postId} {
+      allow read: if true; // Public access for students
+      
+      allow create: if isAdmin() && isValidPost(incoming());
+      
+      allow update: if (
+        // Case 1: Admin updating post
+        (isAdmin() && isValidPost(incoming())) ||
+        // Case 2: Public user incrementing view count (action-based update)
+        (
+          incoming().diff(existing()).affectedKeys().hasOnly(['views']) &&
+          incoming().views == existing().views + 1
+        )
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['title', 'category', 'date', 'content']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.category in ['results', 'jobs', 'answerkey', 'admitcard', 'syllabus', 'notifications'] &&
+             data.date is string &&
+             data.content is string && data.content.size() <= 50000 &&
+             (!('views' in data) || data.views is number) &&
+             (!('isNew' in data) || data.isNew is bool) &&
+             (!('isHot' in data) || data.isHot is bool) &&
+             (!('tags' in data) || (data.tags is list && data.tags.size() <= 10)) &&
+             (!('authorId' in data) || data.authorId == request.auth.uid);
+    }
+  }
+}

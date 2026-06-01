@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dark-blue: #0f172a;
+  --color-red-primary: #dc2626;
+  --color-dark-gray: #2d3748;
+}
+
+:root {
+  --dark-blue: #0f172a;
+  --red: #dc2626;
+  --white: #ffffff;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+  --blue-link: #1d4ed8;
+  --dark-gray: #2d3748;
+  --card-bg: #ffffff;
+  --body-bg: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --border-color: #e2e8f0;
+  --section-bg: #ffffff;
+  --ticker-bg: #fef2f2;
+}
+
+[data-theme="dark"] {
+  --white: #0f172a;
+  --gray-50: #1e293b;
+  --gray-100: #1e293b;
+  --gray-200: #334155;
+  --gray-300: #475569;
+  --gray-400: #94a3b8;
+  --gray-500: #cbd5e1;
+  --gray-600: #e2e8f0;
+  --gray-700: #f1f5f9;
+  --gray-800: #f8fafc;
+  --gray-900: #ffffff;
+  --card-bg: #1e293b;
+  --body-bg: #0f172a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --border-color: #334155;
+  --section-bg: #1e293b;
+  --ticker-bg: #1e293b;
+  --blue-link: #60a5fa;
+}
+
+@layer base {
+  body {
+    @apply bg-[var(--body-bg)] text-[var(--text-primary)] transition-colors duration-300;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+}
+
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  animation: ticker-scroll 60s linear infinite;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-blink {
+  animation: blink 1.5s infinite;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "CareerSetu",
+  "description": "सरकारी नौकरी, रिजल्ट, एडमिट कार्ड और करियर अपडेट के लिए भरोसेमंद पोर्टल",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

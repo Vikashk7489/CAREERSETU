@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "JobPost": {
+      "title": "Job Post",
+      "description": "A single educational job post, result, or notification",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "The title of the post" },
+        "date": { "type": "string", "format": "date-time", "description": "Creation date of the post" },
+        "category": { 
+          "type": "string", 
+          "enum": ["results", "jobs", "answerkey", "admitcard", "syllabus", "notifications"],
+          "description": "The category of the post" 
+        },
+        "isNew": { "type": "boolean", "description": "Whether the post is marked as NEW" },
+        "isHot": { "type": "boolean", "description": "Whether the post is marked as HOT" },
+        "tags": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "Searchable tags" 
+        },
+        "views": { "type": "number", "description": "Number of views" },
+        "content": { "type": "string", "description": "The main content of the article (markdown/html)" },
+        "authorId": { "type": "string", "description": "The UID of the admin who created it" }
+      },
+      "required": ["title", "category", "date", "content"]
+    }
+  },
+  "firestore": {
+    "/posts/{postId}": {
+      "schema": "JobPost",
+      "description": "Collection of all job posts"
+    },
+    "/admins/{adminId}": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" }
+        }
+      },
+      "description": "Determines who has admin privileges"
+    }
+  }
+}
