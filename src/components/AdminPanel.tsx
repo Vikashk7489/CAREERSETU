@@ -37,7 +37,23 @@ import {
   Activity,
   History,
   Lock as LockIcon,
-  HardDrive
+  HardDrive,
+  Grid,
+  BellRing,
+  Image as ImageIcon,
+  BarChart3,
+  MessageSquare,
+  Newspaper,
+  Palette,
+  ShieldCheck,
+  Save,
+  Clock,
+  ExternalLink,
+  ChevronRight,
+  Monitor,
+  Moon,
+  Sun,
+  Key as KeyBtn
 } from 'lucide-react';
 
 async function callAI(prompt: string, systemPrompt: string) {
@@ -62,7 +78,7 @@ const ADMIN_PASS = 'admin@careersetu';
 
 export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('cs_admin_session') === 'active');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'categories' | 'seo' | 'ai' | 'ads' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'categories' | 'seo' | 'ai' | 'ads' | 'settings' | 'home-builder' | 'media' | 'analytics' | 'contacts' | 'notifications' | 'security' | 'maintenance'>('dashboard');
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<any | null>(null);
@@ -340,12 +356,18 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
         <nav className="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
           {[
             { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: '📊 Dashboard' },
-            { id: 'posts', icon: <FilePlus size={18} />, label: '📝 Posts' },
-            { id: 'categories', icon: <Plus size={18} />, label: '🏷 Categories' },
+            { id: 'posts', icon: <FilePlus size={18} />, label: '📝 Post Manager' },
+            { id: 'categories', icon: <Plus size={18} />, label: '🏷 Category' },
             { id: 'ai', icon: <Cpu size={18} />, label: '🤖 AI Center' },
-            { id: 'ads', icon: <Globe size={18} />, label: '📢 Ad Manager' },
-            { id: 'newsletter', icon: <Mail size={18} />, label: '📰 Newsletter' },
+            { id: 'home-builder', icon: <Grid size={18} />, label: '🎨 Home Builder' },
+            { id: 'media', icon: <ImageIcon size={18} />, label: '📂 Media Manager' },
+            { id: 'ads', icon: <Megaphone size={18} />, label: '📢 Ad Manager' },
+            { id: 'notifications', icon: <BellRing size={18} />, label: '🔔 Notifications' },
             { id: 'seo', icon: <Search size={18} />, label: '🔍 SEO Manager' },
+            { id: 'analytics', icon: <BarChart3 size={18} />, label: '📈 Analytics' },
+            { id: 'contacts', icon: <MessageSquare size={18} />, label: '📧 Messages' },
+            { id: 'security', icon: <ShieldCheck size={18} />, label: '🔐 Security' },
+            { id: 'maintenance', icon: <Clock size={18} />, label: '🛠 Maintenance' },
             { id: 'settings', icon: <Settings size={18} />, label: '⚙ Settings' },
           ].map(item => (
             <button
@@ -1022,6 +1044,221 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                          </div>
                       </div>
                    </div>
+                </div>
+              )}
+
+              {/* Module: Home Builder */}
+              {activeTab === 'home-builder' && (
+                <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
+                   <div className="flex justify-between items-center mb-8">
+                     <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-orange-500"><Grid size={18} /> Homepage Layout Builder</h3>
+                     <button className="bg-orange-500 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Save Layout</button>
+                   </div>
+                   <div className="space-y-4">
+                      {[
+                        { label: 'Featured Banners', active: true, id: 'banners' },
+                        { label: 'Latest Jobs Section', active: true, id: 'latest' },
+                        { label: 'Admit Card Grid', active: true, id: 'admit' },
+                        { label: 'Result Row', active: true, id: 'result' },
+                        { label: 'Popular Categories', active: false, id: 'cats' },
+                        { label: 'Newsletter Popup', active: true, id: 'news' }
+                      ].map((sec, i) => (
+                        <div key={sec.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color draggable cursor-move">
+                           <div className="flex items-center gap-4">
+                              <span className="text-xs font-bold text-text-secondary opacity-50">#{i+1}</span>
+                              <h4 className="text-sm font-black uppercase tracking-tight">{sec.label}</h4>
+                           </div>
+                           <div className="flex items-center gap-4">
+                              <span className={`text-[9px] font-black px-2 py-0.5 rounded ${sec.active ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{sec.active ? 'VISIBLE' : 'HIDDEN'}</span>
+                              <button className="text-blue-link font-black text-[10px] uppercase hover:underline">Edit Styling</button>
+                           </div>
+                        </div>
+                      ))}
+                      <button className="w-full border-2 border-dashed border-border-color py-4 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-secondary hover:bg-gray-50 transition-all">+ Add New Section</button>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Media Manager */}
+              {activeTab === 'media' && (
+                <div className="space-y-8">
+                   <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
+                      <div className="flex justify-between items-center mb-8">
+                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-blue-600"><ImageIcon size={18} /> Media Library</h3>
+                        <div className="flex gap-3">
+                           <button className="bg-gray-100 dark:bg-gray-800 text-[10px] font-black px-4 py-2 rounded-lg uppercase">Bulk Delete</button>
+                           <button className="bg-blue-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Upload New</button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                         {[1, 2, 3, 4, 5, 6].map(i => (
+                           <div key={i} className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-xl relative group overflow-hidden border border-border-color">
+                              <img src={`https://images.unsplash.com/photo-1541339907198-e08759df9a13?auto=format&fit=crop&q=80&w=200`} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                 <button className="p-1.5 bg-white rounded-lg text-gray-900"><Edit2 size={12}/></button>
+                                 <button className="p-1.5 bg-red-primary rounded-lg text-white"><Trash2 size={12}/></button>
+                              </div>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Analytics */}
+              {activeTab === 'analytics' && (
+                <div className="space-y-8 animate-in fade-in">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white p-6 rounded-2xl border border-border-color shadow-sm">
+                         <p className="text-[10px] font-black text-text-secondary uppercase mb-1">Monthly Visitors</p>
+                         <h3 className="text-3xl font-black">124,500</h3>
+                         <div className="mt-3 h-1 bg-green-500 w-full rounded-full"></div>
+                      </div>
+                      <div className="bg-white p-6 rounded-2xl border border-border-color shadow-sm">
+                         <p className="text-[10px] font-black text-text-secondary uppercase mb-1">Active Sessions</p>
+                         <h3 className="text-3xl font-black">1,042</h3>
+                         <div className="mt-3 h-1 bg-blue-500 w-full rounded-full"></div>
+                      </div>
+                      <div className="bg-white p-6 rounded-2xl border border-border-color shadow-sm">
+                         <p className="text-[10px] font-black text-text-secondary uppercase mb-1">Avg. Time</p>
+                         <h3 className="text-3xl font-black">4:12m</h3>
+                         <div className="mt-3 h-1 bg-purple-500 w-full rounded-full"></div>
+                      </div>
+                   </div>
+                   <div className="bg-white p-8 rounded-2xl border border-border-color shadow-sm">
+                      <h4 className="text-xs font-black uppercase tracking-widest mb-6">Traffic Sources</h4>
+                      <div className="space-y-4">
+                         {[
+                           { label: 'Google Search', val: '65%', color: 'bg-green-500' },
+                           { label: 'Direct Traffic', val: '20%', color: 'bg-blue-500' },
+                           { label: 'Social Media', val: '10%', color: 'bg-red-500' },
+                           { label: 'Others', val: '5%', color: 'bg-gray-500' }
+                         ].map(s => (
+                           <div key={s.label}>
+                              <div className="flex justify-between text-[10px] font-bold uppercase mb-1">
+                                 <span>{s.label}</span>
+                                 <span>{s.val}</span>
+                              </div>
+                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                 <div className={`h-full ${s.color}`} style={{ width: s.val }}></div>
+                              </div>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Messages */}
+              {activeTab === 'contacts' && (
+                <div className="bg-white dark:bg-gray-900 border border-border-color rounded-2xl shadow-sm overflow-hidden">
+                   <div className="p-6 border-b border-border-color bg-gray-50">
+                      <h3 className="text-[10px] font-black uppercase tracking-[3px]">Inbox (12 Unread)</h3>
+                   </div>
+                   <div className="divide-y divide-border-color">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="p-6 flex gap-4 hover:bg-gray-50 transition-colors">
+                           <div className="w-12 h-12 rounded-full bg-red-primary/10 text-red-primary flex items-center justify-center font-bold">AK</div>
+                           <div className="flex-1">
+                              <div className="flex justify-between items-center mb-1">
+                                 <h4 className="text-sm font-black">Ankit Kumar</h4>
+                                 <span className="text-[10px] text-text-secondary">2:30 PM</span>
+                              </div>
+                              <p className="text-xs font-bold text-text-secondary line-clamp-1 mb-2">Subject: Regarding SSC CGL Admit Card issue...</p>
+                              <div className="flex gap-2">
+                                 <button className="text-[9px] font-black uppercase tracking-widest text-blue-link">Reply</button>
+                                 <button className="text-[9px] font-black uppercase tracking-widest text-red-primary">Delete</button>
+                              </div>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Notifications */}
+              {activeTab === 'notifications' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                   <div className="bg-white p-8 rounded-2xl border border-border-color shadow-sm">
+                      <h3 className="text-sm font-black uppercase tracking-widest mb-6 text-red-primary">Send Push Notification</h3>
+                      <form className="space-y-4">
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">Title</label>
+                            <input type="text" className="w-full bg-gray-50 border border-border-color rounded-lg px-4 py-2.5 font-bold" placeholder="Breaking News!" />
+                         </div>
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">Message</label>
+                            <textarea className="w-full bg-gray-50 border border-border-color rounded-lg px-4 py-2.5 font-bold h-24" placeholder="SSC CGL Tier 1 Result is out now..."></textarea>
+                         </div>
+                         <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-text-secondary">Target URL</label>
+                            <input type="text" className="w-full bg-gray-50 border border-border-color rounded-lg px-4 py-2.5 font-bold" placeholder="https://careersetu.com/ssc-result" />
+                         </div>
+                         <button className="w-full bg-red-primary text-white py-4 rounded-xl font-black uppercase tracking-[2px] shadow-lg">Send to 15,000 Devices</button>
+                      </form>
+                   </div>
+                   <div className="space-y-6">
+                      <div className="bg-gray-900 text-white p-8 rounded-2xl shadow-xl">
+                         <h4 className="text-xs font-black uppercase tracking-widest mb-4">Device Reach</h4>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                               <p className="text-[9px] font-black text-gray-400 uppercase">Android</p>
+                               <h5 className="text-2xl font-black">12,400</h5>
+                            </div>
+                            <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                               <p className="text-[9px] font-black text-gray-400 uppercase">Desktop</p>
+                               <h5 className="text-2xl font-black">2,600</h5>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Security */}
+              {activeTab === 'security' && (
+                <div className="space-y-8">
+                   <div className="bg-white p-8 rounded-2xl border border-border-color shadow-sm">
+                      <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2 text-red-primary"><ShieldCheck size={18} /> Admin Activity Logs</h3>
+                      <div className="space-y-3">
+                         {[1, 2, 3, 4, 5].map(i => (
+                           <div key={i} className="flex items-center justify-between p-3 border-b border-border-color last:border-0">
+                              <div className="flex items-center gap-3">
+                                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><Users size={14}/></div>
+                                 <div>
+                                    <p className="text-xs font-bold">Admin logged in from IP: 192.168.1.1</p>
+                                    <p className="text-[9px] text-text-secondary">Today at 10:30 AM</p>
+                                 </div>
+                              </div>
+                              <span className="text-[9px] font-black text-blue-link uppercase">Success</span>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Module: Maintenance */}
+              {activeTab === 'maintenance' && (
+                <div className="max-w-2xl mx-auto bg-white p-12 rounded-2xl border border-border-color shadow-2xl text-center">
+                   <div className="w-20 h-20 bg-orange-500/10 text-orange-500 flex items-center justify-center mx-auto mb-6 rounded-full">
+                      <Clock size={40} className="animate-spin-slow" />
+                   </div>
+                   <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">Portal Maintenance Mode</h3>
+                   <p className="text-sm text-text-secondary mb-8">Activating this will show a maintenance screen to all visitors.</p>
+                   
+                   <div className="p-6 bg-gray-50 rounded-xl border border-border-color mb-8 text-left space-y-4">
+                      <div className="space-y-1.5">
+                         <label className="text-[10px] font-black uppercase text-text-secondary">Custom Message</label>
+                         <input type="text" className="w-full bg-white border border-border-color rounded-lg px-4 py-2 text-sm font-bold" defaultValue="We are updating our servers for better performance. Coming back soon!" />
+                      </div>
+                      <div className="space-y-1.5">
+                         <label className="text-[10px] font-black uppercase text-text-secondary">Countdown (Minutes)</label>
+                         <input type="number" className="w-full bg-white border border-border-color rounded-lg px-4 py-2 text-sm font-bold" defaultValue="30" />
+                      </div>
+                   </div>
+
+                   <button className="w-full bg-orange-500 text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all">Enable Maintenance Mode</button>
                 </div>
               )}
 
