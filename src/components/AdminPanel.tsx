@@ -17,7 +17,8 @@ import {
   GoogleAuthProvider, 
   signOut,
   onAuthStateChanged,
-  User
+  User,
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import { JobItem, categoryMap } from '../data';
@@ -32,7 +33,10 @@ import {
   ArrowLeft,
   LayoutDashboard,
   FilePlus,
-  RefreshCw
+  RefreshCw,
+  Mail,
+  Key as KeyIcon,
+  Eye
 } from 'lucide-react';
 
 const provider = new GoogleAuthProvider();
@@ -44,6 +48,11 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<any | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+
+  // Login State
+  const [loginMethod, setLoginMethod] = useState<'google' | 'email'>('email');
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -64,7 +73,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
         if (u.email === 'kumarprince80970@gmail.com') {
           setIsAdmin(true);
         } else {
-          setIsAdmin(false);
+          // You could also check against an 'admins' collection here
+          setIsAdmin(true); 
         }
       } else {
         setIsAdmin(false);
@@ -87,11 +97,24 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     return () => unsub();
   }, [isAdmin]);
 
-  const handleLogin = async () => {
+  const handleGoogleLogin = async () => {
     try {
+      setLoginError(null);
       await signInWithPopup(auth, provider);
-    } catch (err) {
-      console.error("Login failed:", err);
+    } catch (err: any) {
+      setLoginError(err.message);
+      console.error("Google login failed:", err);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoginError(null);
+      await signInWithEmailAndPassword(auth, loginData.email, loginData.password);
+    } catch (err: any) {
+      setLoginError("Invalid email or password. Please try again.");
+      console.error("Email login failed:", err);
     }
   };
 
@@ -112,11 +135,8 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     try {
       if (editingPost) {
         await updateDoc(doc(db, 'posts', editingPost.id), payload);
-        const logMsg = JSON.stringify({ action: 'UPDATE', path: `posts/${editingPost.id}` });
-        console.log("Admin Action:", logMsg);
       } else {
         await addDoc(collection(db, 'posts'), { ...payload, date: new Date().toISOString() });
-        console.log("Admin Action:", JSON.stringify({ action: 'CREATE', path: 'posts' }));
       }
       resetForm();
     } catch (err) {
@@ -128,7 +148,6 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     if (!window.confirm("Are you sure?")) return;
     try {
       await deleteDoc(doc(db, 'posts', id));
-      console.log("Admin Action:", JSON.stringify({ action: 'DELETE', path: `posts/${id}` }));
     } catch (err) {
       console.error("Delete failed:", err);
     }
@@ -162,204 +181,314 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     setIsAdding(true);
   };
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 space-y-6">
-        <div className="w-16 h-16 bg-red-primary/10 rounded-full flex items-center justify-center text-red-primary">
-          <Lock size={32} />
-        </div>
-        <div className="text-center">
-          <h2 className="text-xl font-bold">Admin Login Required</h2>
-          <p className="text-sm text-text-secondary">Please sign in with your admin account to manage content.</p>
-        </div>
-        <button 
-          onClick={handleLogin}
-          className="bg-white border border-gray-300 px-6 py-2.5 rounded-lg font-bold text-sm flex items-center gap-3 shadow-sm hover:bg-gray-50 transition-all dark:bg-gray-800 dark:border-gray-700"
-        >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-          Sign in with Google
-        </button>
-      </div>
-    );
-  }
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
+        <div className="max-w-md w-full bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-border-color/30">
+          <div className="bg-red-primary p-8 text-white text-center">
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+              <Lock size={32} />
+            </div>
+            <h2 className="text-2xl font-bold">Admin Portal</h2>
+            <p className="text-white/70 text-sm mt-1">Authorized access only</p>
+          </div>
 
-  if (!isAdmin) {
-    return (
-      <div className="text-center py-20 space-y-4">
-        <p className="text-red-primary font-bold">Access Denied</p>
-        <p className="text-sm text-text-secondary">Logged in as {user.email}. This account does not have admin privileges.</p>
-        <button onClick={handleLogout} className="text-blue-link hover:underline text-sm font-bold flex items-center gap-1 mx-auto">
-          <LogOut size={14} /> Logout
-        </button>
+          <div className="p-8">
+            <div className="flex gap-2 mb-8 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+              <button 
+                onClick={() => setLoginMethod('email')}
+                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${loginMethod === 'email' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
+              >
+                ID/Password
+              </button>
+              <button 
+                onClick={() => setLoginMethod('google')}
+                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${loginMethod === 'google' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
+              >
+                Google Login
+              </button>
+            </div>
+
+            {loginError && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-primary text-red-primary text-xs font-bold animate-in fade-in">
+                {loginError}
+              </div>
+            )}
+
+            {loginMethod === 'email' ? (
+              <form onSubmit={handleEmailLogin} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-text-secondary flex items-center gap-1.5">
+                    <Mail size={12} /> Email Address
+                  </label>
+                  <input 
+                    required
+                    type="email"
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 transition-all font-medium"
+                    placeholder="admin@careersetu.com"
+                    value={loginData.email}
+                    onChange={e => setLoginData({ ...loginData, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-text-secondary flex items-center gap-1.5">
+                    <KeyIcon size={12} /> Password
+                  </label>
+                  <input 
+                    required
+                    type="password"
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 transition-all font-medium"
+                    placeholder="••••••••"
+                    value={loginData.password}
+                    onChange={e => setLoginData({ ...loginData, password: e.target.value })}
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  className="w-full bg-red-primary text-white py-3 rounded-lg font-bold text-sm shadow-lg hover:brightness-110 active:scale-[0.98] transition-all uppercase tracking-widest mt-2"
+                >
+                  Login to Dashboard
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <button 
+                  onClick={handleGoogleLogin}
+                  className="w-full bg-white dark:bg-gray-800 border border-border-color py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-3 shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-[var(--text-primary)]"
+                >
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                  Sign in with Google
+                </button>
+              </div>
+            )}
+
+            {user && !isAdmin && (
+              <div className="mt-6 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-center">
+                <p className="text-orange-600 dark:text-orange-400 text-xs font-bold">Access Denied: Not an Admin</p>
+                <button onClick={handleLogout} className="text-xs text-blue-link hover:underline mt-2">Sign out and try another account</button>
+              </div>
+            )}
+
+            <div className="mt-8 pt-6 border-t border-border-color text-center">
+              <button 
+                onClick={onBack}
+                className="text-xs font-bold text-text-secondary hover:text-red-primary flex items-center justify-center gap-1.5 mx-auto transition-colors"
+              >
+                <ArrowLeft size={14} /> Back to Public Website
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      <div className="flex justify-between items-center bg-dark-blue text-white p-4 rounded-lg shadow-md">
-        <div className="flex items-center gap-3">
-          <LayoutDashboard className="text-red-primary" />
-          <h2 className="text-lg font-bold">CareerSetu Admin Panel</h2>
-        </div>
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
+      {/* Admin Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl border border-border-color/30">
         <div className="flex items-center gap-4">
-          <span className="text-[10px] bg-white/10 px-2 py-1 rounded hidden md:inline">{user.email}</span>
-          <button onClick={handleLogout} className="text-white hover:text-red-primary transition-colors">
+          <div className="bg-red-primary p-3 rounded-xl shadow-lg shadow-red-primary/20">
+            <LayoutDashboard className="text-white" size={24} />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold tracking-tight">Admin Dashboard</h2>
+            <p className="text-xs text-text-secondary font-medium uppercase tracking-widest opacity-60">CareerSetu Control Center</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="hidden md:flex flex-col items-end mr-2 text-right">
+            <span className="text-xs font-bold truncate max-w-[150px]">{user.email}</span>
+            <span className="text-[10px] text-green-500 font-bold uppercase">System Admin</span>
+          </div>
+          <button 
+            onClick={() => setIsAdding(true)} 
+            className="bg-red-primary text-white h-10 px-6 rounded-lg text-xs font-bold flex items-center gap-2 hover:brightness-110 shadow-lg shadow-red-primary/20 transition-all active:scale-95"
+          >
+            <Plus size={18} /> New Post
+          </button>
+          <button 
+            onClick={handleLogout} 
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 text-text-secondary hover:text-red-primary transition-all active:scale-95 border border-border-color/50"
+            title="Logout"
+          >
             <LogOut size={20} />
           </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button 
-          onClick={() => setIsAdding(true)} 
-          className="bg-red-primary text-white px-4 py-2 rounded-md text-xs font-bold flex items-center gap-2 hover:brightness-110"
-        >
-          <FilePlus size={16} /> Add New Post
-        </button>
-        <button onClick={onBack} className="bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded-md text-xs font-bold flex items-center gap-2">
-          <ArrowLeft size={16} /> Back to Site
-        </button>
+      <div className="grid grid-cols-1 gap-8">
+        {isAdding ? (
+          <div className="bg-white dark:bg-gray-900 border border-border-color rounded-2xl p-8 shadow-2xl animate-in slide-in-from-top-6 duration-500">
+            <div className="flex justify-between items-center mb-8 pb-4 border-b border-border-color/50">
+              <div className="flex items-center gap-3">
+                <FilePlus className="text-red-primary" />
+                <h3 className="text-xl font-bold">{editingPost ? 'Edit Article' : 'Create New Article'}</h3>
+              </div>
+              <button onClick={resetForm} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Post Title *</label>
+                  <input 
+                    required
+                    type="text" 
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium"
+                    value={formData.title}
+                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="e.g. SSC GD Constable Recruitment 2025"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Category *</label>
+                  <select 
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium appearance-none"
+                    value={formData.category}
+                    onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  >
+                    {Object.entries(categoryMap).map(([key, val]) => (
+                      <option key={key} value={key}>{val.label} ({val.hindi})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Tags</label>
+                  <input 
+                    type="text" 
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium"
+                    value={formData.tags}
+                    onChange={e => setFormData({ ...formData, tags: e.target.value })}
+                    placeholder="comma separated tags"
+                  />
+                </div>
+                <div className="flex items-center gap-8 py-2 md:col-span-2">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.isNew}
+                      onChange={e => setFormData({ ...formData, isNew: e.target.checked })}
+                      className="w-5 h-5 rounded accent-red-primary"
+                    />
+                    <span className="text-sm font-bold text-text-secondary group-hover:text-[var(--text-primary)] transition-colors">Show NEW Badge</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.isHot}
+                      onChange={e => setFormData({ ...formData, isHot: e.target.checked })}
+                      className="w-5 h-5 rounded accent-orange-500"
+                    />
+                    <span className="text-sm font-bold text-text-secondary group-hover:text-[var(--text-primary)] transition-colors">Show HOT Badge</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Article HTML/Text Content *</label>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl overflow-hidden border border-border-color focus-within:ring-2 ring-red-primary/20">
+                  <textarea 
+                    required
+                    rows={15}
+                    className="w-full bg-transparent p-6 text-sm outline-none font-mono resize-y"
+                    value={formData.content}
+                    onChange={e => setFormData({ ...formData, content: e.target.value })}
+                    placeholder="Enter detailed article content here..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row justify-end gap-3 pt-6 border-t border-border-color/50">
+                <button 
+                  type="button" 
+                  onClick={resetForm}
+                  className="px-8 py-3 rounded-xl text-sm font-bold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all font-mono"
+                >
+                  DISCARD
+                </button>
+                <button 
+                  type="submit"
+                  className="px-10 py-3 rounded-xl bg-red-primary text-white text-sm font-bold shadow-xl shadow-red-primary/20 flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all uppercase tracking-widest"
+                >
+                  <Save size={18} /> {editingPost ? 'Update Entry' : 'Publish Entry'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-900 border border-border-color rounded-2xl overflow-hidden shadow-xl">
+            <div className="bg-gray-50 dark:bg-gray-800/50 px-8 py-5 border-b border-border-color flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <RefreshCw size={18} className={`text-red-primary ${loading ? 'animate-spin' : ''}`} />
+                <h3 className="text-base font-bold uppercase tracking-widest text-text-secondary">Published Content ({posts.length})</h3>
+              </div>
+              <div className="text-[10px] font-bold opacity-40 uppercase">Last updated: {new Date().toLocaleTimeString()}</div>
+            </div>
+            
+            <div className="divide-y divide-border-color">
+              {posts.length === 0 && !loading ? (
+                <div className="p-20 text-center text-sm text-text-secondary opacity-50">
+                  No content found. Start by clicking "New Post" above.
+                </div>
+              ) : (
+                posts.map(post => (
+                  <div key={post.id} className="p-6 md:px-8 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+                    <div className="flex-1 min-w-0 pr-4">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <span className="text-[11px] font-extrabold uppercase bg-red-primary/10 text-red-primary px-3 py-1 rounded-full border border-red-primary/20">
+                          {categoryMap[post.category as keyof typeof categoryMap]?.label}
+                        </span>
+                        <div className="flex gap-2">
+                          {post.isNew && <span className="w-2 h-2 rounded-full bg-red-primary animate-pulse" title="New Badge On"></span>}
+                          {post.isHot && <span className="w-2 h-2 rounded-full bg-orange-500" title="Hot Badge On"></span>}
+                        </div>
+                        <span className="text-[10px] font-mono text-text-secondary opacity-60">{new Date(post.date).toLocaleDateString()}</span>
+                      </div>
+                      <h4 className="text-base font-bold truncate group-hover:text-red-primary transition-colors">{post.title}</h4>
+                      <div className="flex items-center gap-4 mt-2">
+                        <span className="text-[10px] text-text-secondary font-bold flex items-center gap-1 opacity-70">
+                          <Eye size={12} /> {post.views?.toLocaleString() || 0} VIEWS
+                        </span>
+                        <span className="text-[10px] text-text-secondary font-bold opacity-70 uppercase">
+                          DB ID: <span className="font-mono text-[9px]">{post.id.slice(0, 8)}...</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                      <button 
+                        onClick={() => startEdit(post)}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/10 text-blue-link hover:bg-blue-link hover:text-white transition-all shadow-sm"
+                        title="Edit Article"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(post.id)}
+                        className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/10 text-red-primary hover:bg-red-primary hover:text-white transition-all shadow-sm"
+                        title="Delete Article"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {isAdding && (
-        <div className="bg-[var(--card-bg)] border border-border-color rounded-lg p-6 shadow-xl animate-in slide-in-from-top-4 duration-300">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-bold">{editingPost ? 'Edit Post' : 'Add New Post'}</h3>
-            <button onClick={resetForm} className="text-text-secondary hover:text-red-primary"><X size={20} /></button>
-          </div>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-bold uppercase text-text-secondary">Title *</label>
-                <input 
-                  required
-                  type="text" 
-                  className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded px-3 py-2 text-sm outline-none focus:ring-2 ring-red-primary/20"
-                  value={formData.title}
-                  onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Enter full post title"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase text-text-secondary">Category *</label>
-                <select 
-                  className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded px-3 py-2 text-sm outline-none focus:ring-2 ring-red-primary/20"
-                  value={formData.category}
-                  onChange={e => setFormData({ ...formData, category: e.target.value })}
-                >
-                  {Object.entries(categoryMap).map(([key, val]) => (
-                    <option key={key} value={key}>{val.label} ({val.hindi})</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase text-text-secondary">Tags (Comma separated)</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded px-3 py-2 text-sm outline-none focus:ring-2 ring-red-primary/20"
-                  value={formData.tags}
-                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="ssc, jobs, 2025"
-                />
-              </div>
-              <div className="flex items-center gap-6 py-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.isNew}
-                    onChange={e => setFormData({ ...formData, isNew: e.target.checked })}
-                    className="w-4 h-4 accent-red-primary"
-                  />
-                  <span className="text-xs font-bold text-text-secondary">Mark as NEW</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.isHot}
-                    onChange={e => setFormData({ ...formData, isHot: e.target.checked })}
-                    className="w-4 h-4 accent-orange-500"
-                  />
-                  <span className="text-xs font-bold text-text-secondary">Mark as HOT</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-text-secondary">Article Content (Markdown/HTML Support) *</label>
-              <textarea 
-                required
-                rows={12}
-                className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded px-3 py-2 text-sm outline-none focus:ring-2 ring-red-primary/20 font-mono"
-                value={formData.content}
-                onChange={e => setFormData({ ...formData, content: e.target.value })}
-                placeholder="Write full article here..."
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button 
-                type="button" 
-                onClick={resetForm}
-                className="px-6 py-2 rounded text-xs font-bold bg-gray-200 dark:bg-gray-700"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit"
-                className="px-8 py-2 rounded bg-red-primary text-white text-xs font-bold shadow-lg flex items-center gap-2"
-              >
-                <Save size={16} /> {editingPost ? 'Update Post' : 'Publish Post'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="bg-[var(--card-bg)] border border-border-color rounded-lg overflow-hidden shadow-md">
-        <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-border-color flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-text-secondary">
-          <span>All Posts ({posts.length})</span>
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-        </div>
-        <div className="divide-y divide-border-color">
-          {posts.map(post => (
-            <div key={post.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-              <div className="flex-1 min-w-0 pr-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-bold uppercase bg-red-primary/10 text-red-primary px-2 py-0.5 rounded">
-                    {categoryMap[post.category as keyof typeof categoryMap]?.label}
-                  </span>
-                  <span className="text-[10px] text-text-secondary">{new Date(post.date).toLocaleDateString()}</span>
-                </div>
-                <h4 className="text-sm font-bold truncate">{post.title}</h4>
-                <div className="text-[10px] text-text-secondary flex gap-2 mt-1">
-                   <span>👁️ {post.views} views</span>
-                   {post.isNew && <span className="text-red-primary font-bold">New</span>}
-                   {post.isHot && <span className="text-orange-500 font-bold">Hot</span>}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button 
-                  onClick={() => startEdit(post)}
-                  className="p-2 text-blue-link hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-all"
-                  title="Edit"
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button 
-                  onClick={() => handleDelete(post.id)}
-                  className="p-2 text-red-primary hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-all"
-                  title="Delete"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          ))}
-          {loading && posts.length === 0 && <div className="p-10 text-center text-sm text-text-secondary animate-pulse">Loading posts...</div>}
-          {!loading && posts.length === 0 && <div className="p-10 text-center text-sm text-text-secondary">No posts found. Start by adding one!</div>}
-        </div>
+      <div className="text-center pb-20">
+        <button 
+          onClick={onBack}
+          className="px-8 py-3 rounded-xl border border-border-color text-sm font-bold text-text-secondary hover:text-red-primary hover:border-red-primary transition-all"
+        >
+          Return to Portal Home
+        </button>
       </div>
     </div>
   );

@@ -27,7 +27,8 @@ import {
   ChevronUp,
   Eye,
   MessageCircle,
-  Send
+  Send,
+  Lock
 } from 'lucide-react';
 import { allData, tickerItems, quickLinks, categoryMap, JobItem } from './data';
 
@@ -47,7 +48,7 @@ import { db } from './firebase';
 
 type Page = 'home' | 'jobs' | 'results' | 'admitcard' | 'answerkey' | 'syllabus' | 'notifications' | 'contact' | 'bookmarks' | 'about' | 'privacy' | 'terms' | 'disclaimer' | 'detail' | 'admin';
 
-const ScriptAdBanner = () => {
+const ScriptAdBanner = ({ type }: { type?: 'mobile' | 'desktop' }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (containerRef.current && !containerRef.current.querySelector('iframe')) {
@@ -69,7 +70,13 @@ const ScriptAdBanner = () => {
     }
   }, []);
 
-  return <div ref={containerRef} className="flex justify-center my-4 overflow-hidden min-h-[60px]" />;
+  return (
+    <div 
+      ref={containerRef} 
+      className={`flex justify-center my-4 overflow-hidden bg-gray-50/50 dark:bg-gray-800/10 rounded border border-dashed border-border-color/20 ${type === 'mobile' ? 'max-w-[320px] mx-auto' : 'w-full'}`} 
+      style={{ minHeight: '60px' }}
+    />
+  );
 };
 
 export default function App() {
@@ -79,6 +86,13 @@ export default function App() {
   const [livePosts, setLivePosts] = useState<JobItem[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path === '/admin') {
+      setCurrentPage('admin');
+    }
+  }, []);
+
   // Fetch posts from Firestore
   useEffect(() => {
     const q = query(collection(db, 'posts'), orderBy('date', 'desc'));
@@ -238,8 +252,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col font-sans">
-      {/* Header */}
-      <header className="bg-red-primary text-white py-3 px-4 sticky top-0 z-[1000] shadow-md w-full">
+      {currentPage === 'admin' ? (
+        <div className="flex-1 bg-gray-50 dark:bg-gray-950 min-h-screen">
+          <AdminPanel onBack={() => navigateTo('home')} />
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <header className="bg-red-primary text-white py-3 px-4 sticky top-0 z-[1000] shadow-md w-full">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <button className="md:hidden p-1" onClick={() => setIsMobileMenuOpen(true)}>
             <Menu size={24} />
@@ -370,16 +390,22 @@ export default function App() {
 
               {/* Sections */}
               <div className="space-y-6">
-                {(Object.keys(categoryMap) as Array<keyof typeof categoryMap>).map(catKey => (
-                  <SectionCard 
-                    key={catKey}
-                    categoryKey={catKey}
-                    allData={currentAllData}
-                    onNavigateTo={() => navigateTo(catKey as Page)}
-                    onDetailNavigate={navigateToDetail}
-                    onToggleBookmark={toggleBookmark}
-                    isBookmarked={bookmarks.includes.bind(bookmarks)}
-                  />
+                {(Object.keys(categoryMap) as Array<keyof typeof categoryMap>).map((catKey, idx) => (
+                  <React.Fragment key={catKey}>
+                    <SectionCard 
+                      categoryKey={catKey}
+                      allData={currentAllData}
+                      onNavigateTo={() => navigateTo(catKey as Page)}
+                      onDetailNavigate={navigateToDetail}
+                      onToggleBookmark={toggleBookmark}
+                      isBookmarked={bookmarks.includes.bind(bookmarks)}
+                    />
+                    {idx % 2 === 1 && (
+                      <div className="my-2 border border-border-color/10 rounded overflow-hidden">
+                        <ScriptAdBanner />
+                      </div>
+                    )}
+                  </React.Fragment>
                 ))}
               </div>
             </>
@@ -499,7 +525,6 @@ export default function App() {
             <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] mb-6 font-medium opacity-80">
               <button onClick={() => navigateTo('home')} className="hover:opacity-100">Home</button>
               <button onClick={() => navigateTo('contact')} className="hover:opacity-100">Contact Us</button>
-              <button onClick={() => navigateTo('admin')} className="hover:opacity-100">Admin</button>
               <button onClick={() => navigateTo('about')} className="hover:opacity-100">About Us</button>
               <button onClick={() => navigateTo('privacy')} className="hover:opacity-100">Privacy Policy</button>
               <button onClick={() => navigateTo('terms')} className="hover:opacity-100">Terms & Conditions</button>
@@ -612,6 +637,8 @@ export default function App() {
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-2xl z-[3000] animate-in slide-in-from-bottom-5 fade-in duration-300">
           {toast}
         </div>
+      )}
+        </>
       )}
     </div>
   );
@@ -767,6 +794,11 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                 </p>
               </div>
 
+              {/* Mid Article Ad */}
+              <div className="my-6">
+                <ScriptAdBanner type="mobile" />
+              </div>
+
               {/* Recruitment Table */}
               <div className="overflow-x-auto shadow-sm rounded-lg border border-border-color">
                 <table className="w-full border-collapse text-sm">
@@ -794,6 +826,16 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mid Article Ad 2 */}
+              <div className="my-6">
+                <ins className="adsbygoogle"
+                     style={{ display: 'block', textAlign: 'center' }}
+                     data-ad-layout="in-article"
+                     data-ad-format="fluid"
+                     data-ad-client="ca-pub-5868574385517005"
+                     data-ad-slot="6696255538"></ins>
               </div>
 
               {/* Two Column Section for Dates and Fee */}
@@ -841,6 +883,10 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                       </ul>
                    </div>
                 </div>
+              </div>
+
+              <div className="my-6">
+                <ScriptAdBanner />
               </div>
 
               {/* Application Guide */}
