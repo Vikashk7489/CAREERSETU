@@ -613,10 +613,20 @@ export default function App() {
             <button onClick={() => navigateTo('privacy')} className="hover:opacity-100">Privacy</button>
             <button onClick={() => navigateTo('terms')} className="hover:opacity-100">Terms</button>
             <button onClick={() => navigateTo('disclaimer')} className="hover:opacity-100">Disclaimer</button>
-            <button onClick={() => navigateTo('admin')} className="hover:opacity-100 font-black text-red-400">Admin</button>
           </div>
 
-          <div className="pt-6 border-t border-white/10 text-[10px] opacity-60">
+          <div 
+            className="pt-6 border-t border-white/10 text-[10px] opacity-60 cursor-default select-none"
+            onClick={(e) => {
+              // Secret way to access admin: Click copyright 5 times
+              const clicks = parseInt(e.currentTarget.getAttribute('data-clicks') || '0') + 1;
+              e.currentTarget.setAttribute('data-clicks', clicks.toString());
+              if (clicks >= 5) {
+                navigateTo('admin');
+                e.currentTarget.setAttribute('data-clicks', '0');
+              }
+            }}
+          >
             © 2025 CareerSetu. All Rights Reserved. | सरकारी नौकरी, रिजल्ट और एडमिट कार्ड की जानकारी
           </div>
         </div>

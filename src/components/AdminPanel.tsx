@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabase';
-import { User } from '@supabase/supabase-js';
 import { JobItem, categoryMap } from '../data';
 import { 
   Plus, 
@@ -17,19 +16,33 @@ import {
   Mail,
   Key as KeyIcon,
   Eye,
-  Sparkles
+  Sparkles,
+  Search,
+  BarChart4,
+  Cpu,
+  Globe,
+  Bell,
+  Settings,
+  Users,
+  Database,
+  Shield,
+  Smartphone,
+  Trash
 } from 'lucide-react';
 
+// Hardcoded Admin Credentials
+const ADMIN_ID = 'kumarprince80970@gmail.com';
+const ADMIN_PASS = 'admin@careersetu';
+
 export default function AdminPanel({ onBack }: { onBack: () => void }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('cs_admin_session') === 'active');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'categories' | 'seo' | 'ai' | 'ads' | 'settings'>('dashboard');
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<any | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
   // Login State
-  const [loginMethod, setLoginMethod] = useState<'google' | 'email' | 'signup'>('email');
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -54,35 +67,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        if (session.user.email === 'kumarprince80970@gmail.com') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        if (session.user.email === 'kumarprince80970@gmail.com') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
-      } else {
-        setIsAdmin(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!isAdmin) return;
+    if (!isLoggedIn) return;
     
     const fetchPosts = async () => {
       setLoading(true);
@@ -101,7 +86,6 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
 
     fetchPosts();
 
-    // Set up real-time subscription for admin view
     const channel = supabase
       .channel('admin-posts-changes')
       .on(
@@ -114,61 +98,34 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin]);
+  }, [isLoggedIn]);
 
-  const handleGoogleLogin = async () => {
-    try {
-      setLoginError(null);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      setLoginError(err.message);
-      console.error("Google login failed:", err);
-    }
-  };
-
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleLocalLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
+    if (loginData.email === ADMIN_ID && loginData.password === ADMIN_PASS) {
+      setIsLoggedIn(true);
+      localStorage.setItem('cs_admin_session', 'active');
       setLoginError(null);
-      if (loginMethod === 'signup') {
-        const { error } = await supabase.auth.signUp({
-          email: loginData.email,
-          password: loginData.password,
-        });
-        if (error) throw error;
-        setLoginError("Account created! Please confirm your email if required or try logging in.");
-        setLoginMethod('email');
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: loginData.email,
-          password: loginData.password,
-        });
-        if (error) throw error;
-      }
-    } catch (err: any) {
-      setLoginError(err.message || "Invalid credentials. Please try again.");
-      console.error("Auth failed:", err);
+    } else {
+      setLoginError("Invalid Admin ID or Password. Only authorized access permitted.");
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem('cs_admin_session');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAdmin) return;
+    if (!isLoggedIn) return;
 
     const payload = {
       ...formData,
       tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
       views: editingPost ? editingPost.views : 0,
       updated_at: new Date().toISOString(),
-      author_id: user?.id,
-      date: formData.date // Use the date from form
+      date: formData.date
     };
 
     try {
@@ -185,13 +142,14 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
         if (error) throw error;
       }
       resetForm();
+      setActiveTab('posts');
     } catch (err) {
       console.error("Save failed:", err);
     }
   };
 
   const handleDelete = async (id: string | number) => {
-    if (!window.confirm("Are you sure?")) return;
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
     try {
       const { error } = await supabase
         .from('posts')
@@ -247,110 +205,87 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
       date: post.date ? post.date.split('T')[0] : new Date().toISOString().split('T')[0]
     });
     setIsAdding(true);
+    setActiveTab('posts');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (!user || !isAdmin) {
+  // Stats for Dashboard
+  const stats = useMemo(() => {
+    const totalViews = posts.reduce((acc, p) => acc + (p.views || 0), 0);
+    const categoryCounts = posts.reduce((acc: any, p) => {
+      acc[p.category] = (acc[p.category] || 0) + 1;
+      return acc;
+    }, {});
+    
+    return {
+      totalPosts: posts.length,
+      totalViews,
+      topPost: [...posts].sort((a, b) => (b.views || 0) - (a.views || 0))[0],
+      categories: Object.keys(categoryCounts).length
+    };
+  }, [posts]);
+
+  if (!isLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4 font-sans">
         <div className="max-w-md w-full bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-border-color/30">
-          <div className="bg-red-primary p-8 text-white text-center">
-            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+          <div className="bg-red-primary p-8 text-white text-center relaltive overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10"><Shield size={100} /></div>
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md relative z-10 border border-white/30">
               <Lock size={32} />
             </div>
-            <h2 className="text-2xl font-bold">Admin Portal</h2>
-            <p className="text-white/70 text-sm mt-1">Authorized access only</p>
+            <h2 className="text-2xl font-black uppercase tracking-tighter relative z-10">CareerSetu Admin</h2>
+            <p className="text-white/70 text-[10px] mt-1 font-bold uppercase tracking-widest relative z-10">Private Super Admin Console</p>
           </div>
 
           <div className="p-8">
-            <div className="flex gap-2 mb-8 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-              <button 
-                onClick={() => setLoginMethod('email')}
-                className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${loginMethod === 'email' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
-              >
-                Login
-              </button>
-              <button 
-                onClick={() => setLoginMethod('signup')}
-                className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${loginMethod === 'signup' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
-              >
-                Sign Up
-              </button>
-              <button 
-                onClick={() => setLoginMethod('google')}
-                className={`flex-1 py-2 text-[10px] font-bold rounded-md transition-all ${loginMethod === 'google' ? 'bg-white dark:bg-gray-700 shadow-sm text-red-primary' : 'text-text-secondary hover:text-[var(--text-primary)]'}`}
-              >
-                Google
-              </button>
-            </div>
-
             {loginError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-primary text-red-primary text-xs font-bold animate-in fade-in">
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-primary text-red-primary text-xs font-bold animate-in shake duration-300">
                 {loginError}
               </div>
             )}
 
-            {loginMethod === 'email' ? (
-              <form onSubmit={handleEmailLogin} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-text-secondary flex items-center gap-1.5">
-                    <Mail size={12} /> Email ID (Admin)
-                  </label>
-                  <input 
-                    required
-                    type="email"
-                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 transition-all font-medium"
-                    placeholder="kumarprince80970@gmail.com"
-                    value={loginData.email}
-                    onChange={e => setLoginData({ ...loginData, email: e.target.value })}
-                  />
-                  <p className="text-[9px] text-text-secondary opacity-60">Use your registered admin email as ID</p>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase text-text-secondary flex items-center gap-1.5">
-                    <KeyIcon size={12} /> Password
-                  </label>
-                  <input 
-                    required
-                    type="password"
-                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 transition-all font-medium"
-                    placeholder="••••••••"
-                    value={loginData.password}
-                    onChange={e => setLoginData({ ...loginData, password: e.target.value })}
-                  />
-                </div>
-                <button 
-                  type="submit"
-                  className="w-full bg-red-primary text-white py-3 rounded-lg font-bold text-sm shadow-lg hover:brightness-110 active:scale-[0.98] transition-all uppercase tracking-widest mt-2"
-                >
-                  {loginMethod === 'signup' ? 'Create Admin Account' : 'Login to Admin Panel'}
-                </button>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                <button 
-                  onClick={handleGoogleLogin}
-                  className="w-full bg-white dark:bg-gray-800 border border-border-color py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-3 shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-[var(--text-primary)]"
-                >
-                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-                  Sign in with Google
-                </button>
+            <form onSubmit={handleLocalLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-text-secondary flex items-center gap-1.5 tracking-widest">
+                  <Mail size={12} /> Admin Identity
+                </label>
+                <input 
+                  required
+                  type="email"
+                  className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 transition-all font-medium"
+                  placeholder="Master ID"
+                  value={loginData.email}
+                  onChange={e => setLoginData({ ...loginData, email: e.target.value })}
+                />
               </div>
-            )}
-
-            {user && !isAdmin && (
-              <div className="mt-6 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-center">
-                <p className="text-orange-600 dark:text-orange-400 text-xs font-bold">Access Denied: Not an Admin</p>
-                <button onClick={handleLogout} className="text-xs text-blue-link hover:underline mt-2">Sign out and try another account</button>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-text-secondary flex items-center gap-1.5 tracking-widest">
+                  <KeyIcon size={12} /> Master Password
+                </label>
+                <input 
+                  required
+                  type="password"
+                  className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 transition-all font-medium"
+                  placeholder="••••••••"
+                  value={loginData.password}
+                  onChange={e => setLoginData({ ...loginData, password: e.target.value })}
+                />
               </div>
-            )}
+              <button 
+                type="submit"
+                className="w-full bg-red-primary text-white py-4 rounded-lg font-black text-sm shadow-xl shadow-red-primary/20 hover:brightness-110 active:scale-[0.98] transition-all uppercase tracking-[4px] mt-2"
+              >
+                Access Dashboard
+              </button>
+            </form>
 
             <div className="mt-8 pt-6 border-t border-border-color text-center">
               <button 
                 onClick={onBack}
-                className="text-xs font-bold text-text-secondary hover:text-red-primary flex items-center justify-center gap-1.5 mx-auto transition-colors"
+                className="text-[10px] font-black text-text-secondary hover:text-red-primary flex items-center justify-center gap-1.5 mx-auto transition-colors uppercase tracking-widest opacity-60 hover:opacity-100"
               >
-                <ArrowLeft size={14} /> Back to Public Website
+                <ArrowLeft size={14} /> Exit to Portal
               </button>
             </div>
           </div>
@@ -360,47 +295,178 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
-      {/* Admin Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl border border-border-color/30">
-        <div className="flex items-center gap-4">
-          <div className="bg-red-primary p-3 rounded-xl shadow-lg shadow-red-primary/20">
-            <LayoutDashboard className="text-white" size={24} />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col md:flex-row pb-10 md:pb-0">
+      {/* Sidebar Navigation */}
+      <aside className="w-full md:w-64 bg-gray-900 text-white flex flex-col shrink-0">
+        <div className="p-6 border-b border-white/10 flex items-center gap-3">
+          <div className="w-10 h-10 bg-red-primary rounded-xl flex items-center justify-center shadow-lg">
+            <Smartphone size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-extrabold tracking-tight">Admin Dashboard</h2>
-            <p className="text-xs text-text-secondary font-medium uppercase tracking-widest opacity-60">CareerSetu Control Center</p>
+            <h1 className="font-black text-lg tracking-tighter">CS PANEL</h1>
+            <p className="text-[9px] font-bold text-red-primary uppercase tracking-[2px]">Super Admin</p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="hidden md:flex flex-col items-end mr-2 text-right">
-            <span className="text-xs font-bold truncate max-w-[150px]">{user.email}</span>
-            <span className="text-[10px] text-green-500 font-bold uppercase">System Admin</span>
-          </div>
-          <button 
-            onClick={() => setIsAdding(true)} 
-            className="bg-red-primary text-white h-10 px-6 rounded-lg text-xs font-bold flex items-center gap-2 hover:brightness-110 shadow-lg shadow-red-primary/20 transition-all active:scale-95"
-          >
-            <Plus size={18} /> New Post
-          </button>
-          <button 
-            onClick={handleLogout} 
-            className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 text-text-secondary hover:text-red-primary transition-all active:scale-95 border border-border-color/50"
-            title="Logout"
-          >
-            <LogOut size={20} />
-          </button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-8">
-        {isAdding ? (
-          <div className="bg-white dark:bg-gray-900 border border-border-color rounded-2xl p-8 shadow-2xl animate-in slide-in-from-top-6 duration-500">
+        <nav className="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
+          {[
+            { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: '📊 Dashboard' },
+            { id: 'posts', icon: <FilePlus size={18} />, label: '📝 Posts' },
+            { id: 'categories', icon: <Plus size={18} />, label: '🏷 Categories' },
+            { id: 'ai', icon: <Cpu size={18} />, label: '🤖 AI Center' },
+            { id: 'ads', icon: <Globe size={18} />, label: '📢 Ad Manager' },
+            { id: 'seo', icon: <Search size={18} />, label: '🔍 SEO Manager' },
+            { id: 'settings', icon: <Settings size={18} />, label: '⚙ Settings' },
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => { setActiveTab(item.id as any); setIsAdding(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-bold transition-all ${activeTab === item.id && !isAdding ? 'bg-red-primary text-white shadow-lg shadow-red-primary/30' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+            >
+              {item.icon} {item.label}
+            </button>
+          ))}
+          
+          <div className="pt-6 pb-2">
+             <p className="px-4 text-[9px] font-black text-gray-500 uppercase tracking-widest mb-3">Post Actions</p>
+             <button 
+                onClick={() => { setActiveTab('posts'); setIsAdding(true); setEditingPost(null); resetForm(); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-bold transition-all ${isAdding ? 'bg-green-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+              >
+                <Plus size={18} /> Add New Post
+             </button>
+          </div>
+        </nav>
+
+        <div className="p-4 border-t border-white/10">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-red-primary/20 hover:text-red-primary py-3 rounded-lg text-[11px] font-black transition-all border border-white/10 uppercase tracking-widest"
+          >
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+        <header className="flex justify-between items-center mb-8">
+           <div>
+             <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight uppercase">
+               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+             </h2>
+             <p className="text-xs text-text-secondary font-medium uppercase tracking-widest opacity-60">Manage your portal operations</p>
+           </div>
+           
+           <div className="flex items-center gap-4">
+             <div className="bg-white dark:bg-gray-900 border border-border-color py-2 px-4 rounded-full flex items-center gap-3 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span className="text-[10px] font-bold text-text-secondary uppercase">Live Database</span>
+             </div>
+             <button onClick={onBack} title="View Site" className="w-10 h-10 rounded-full bg-white dark:bg-gray-800 border border-border-color flex items-center justify-center hover:bg-gray-100 transition-all shadow-sm">
+                <Globe size={18} className="text-blue-link" />
+             </button>
+           </div>
+        </header>
+
+        {activeTab === 'dashboard' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { label: 'Total Posts', value: stats.totalPosts, icon: <FilePlus />, color: 'bg-blue-500' },
+                { label: 'Total Views', value: stats.totalViews.toLocaleString(), icon: <Eye />, color: 'bg-purple-500' },
+                { label: 'Categories', value: stats.categories, icon: <LayoutDashboard />, color: 'bg-orange-500' },
+                { label: 'Cloud Status', value: 'ONLINE', icon: <Database />, color: 'bg-green-500' },
+              ].map((stat, i) => (
+                <div key={i} className="bg-white dark:bg-gray-900 border border-border-color p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                  <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition-transform ${stat.color} text-white rounded-bl-3xl`}>{stat.icon}</div>
+                  <p className="text-[10px] font-black text-text-secondary uppercase tracking-[2px] mb-1">{stat.label}</p>
+                  <h3 className="text-3xl font-black text-gray-900 dark:text-white tabular-nums">{stat.value}</h3>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Analytics Component (Placeholder) */}
+              <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm h-80 flex flex-col">
+                <div className="flex justify-between items-center mb-6">
+                   <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><BarChart4 size={18} className="text-red-primary" /> Traffic Overview</h3>
+                   <select className="bg-gray-50 border border-border-color text-[10px] font-bold px-2 py-1 rounded">
+                     <option>Last 7 Days</option>
+                     <option>Last 30 Days</option>
+                   </select>
+                </div>
+                <div className="flex-1 flex items-end justify-between gap-2 px-2 pb-2">
+                   {[40, 70, 45, 90, 65, 80, 100].map((h, i) => (
+                     <div key={i} className="flex-1 bg-red-primary/10 rounded-t-lg relative group">
+                        <div className="absolute bottom-0 w-full bg-red-primary rounded-t-lg transition-all duration-1000" style={{ height: h + '%' }}></div>
+                        <div className="hidden group-hover:block absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[8px] px-2 py-1 rounded font-bold">{h*25}</div>
+                     </div>
+                   ))}
+                </div>
+                <div className="flex justify-between mt-4 text-[9px] font-bold text-text-secondary opacity-50 px-2 uppercase tracking-tighter">
+                   <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+              </div>
+
+              {/* Top Post Summary */}
+              <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm h-80 flex flex-col">
+                 <h3 className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2"><Sparkles size={18} className="text-orange-500" /> Trending Now</h3>
+                 {stats.topPost ? (
+                   <div className="space-y-6">
+                      <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-border-color">
+                        <p className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">Most Viewed Post</p>
+                        <h4 className="text-sm font-bold line-clamp-2">{stats.topPost.title}</h4>
+                        <div className="flex justify-between items-center mt-3">
+                           <span className="text-xl font-black text-gray-900 dark:text-white tabular-nums">{stats.topPost.views.toLocaleString()} <span className="text-[10px] font-medium text-text-secondary">VIEWS</span></span>
+                           <button onClick={() => startEdit(stats.topPost)} className="text-[10px] font-black text-blue-link hover:underline uppercase">Edit Post</button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                         <div className="p-3 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
+                           <p className="text-[8px] font-black text-blue-600 uppercase mb-1">Social Shares</p>
+                           <p className="text-xs font-bold">1,245 Shares</p>
+                         </div>
+                         <div className="p-3 bg-green-50 dark:bg-green-900/10 rounded-lg">
+                           <p className="text-[8px] font-black text-green-600 uppercase mb-1">Avg. Read Time</p>
+                           <p className="text-xs font-bold">4.5 Minutes</p>
+                         </div>
+                      </div>
+                   </div>
+                 ) : (
+                   <div className="flex-1 flex items-center justify-center text-xs text-text-secondary opacity-60">No data available yet</div>
+                 )}
+              </div>
+            </div>
+
+            {/* Feature Modules Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-border-color shadow-sm space-y-4">
+                  <div className="flex items-center gap-3 text-red-primary font-black uppercase text-xs tracking-widest"><Cpu size={20} /> AI Center</div>
+                  <p className="text-[10px] text-text-secondary leading-relaxed">Auto-generate articles, descriptions and SEO keywords using OpenCode AI.</p>
+                  <button className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-primary hover:text-white transition-all">Launch AI</button>
+               </div>
+               <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-border-color shadow-sm space-y-4">
+                  <div className="flex items-center gap-3 text-green-600 font-black uppercase text-xs tracking-widest"><Globe size={20} /> SEO Manager</div>
+                  <p className="text-[10px] text-text-secondary leading-relaxed">Manage sitemaps, robots.txt and meta tags for better search ranking.</p>
+                  <button className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-600 hover:text-white transition-all">Configure SEO</button>
+               </div>
+               <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl border border-border-color shadow-sm space-y-4">
+                  <div className="flex items-center gap-3 text-blue-600 font-black uppercase text-xs tracking-widest"><Smartphone size={20} /> App Manager</div>
+                  <p className="text-[10px] text-text-secondary leading-relaxed">Send push notifications and manage mobile app synchronization.</p>
+                  <button className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all">Open Console</button>
+               </div>
+            </div>
+          </div>
+        )}
+
+        {isAdding && activeTab === 'posts' && (
+          <div className="bg-white dark:bg-gray-900 border border-border-color rounded-2xl p-8 shadow-2xl animate-in slide-in-from-top-6 duration-500 max-w-5xl">
             <div className="flex justify-between items-center mb-8 pb-4 border-b border-border-color/50">
               <div className="flex items-center gap-3">
                 <FilePlus className="text-red-primary" />
-                <h3 className="text-xl font-bold">{editingPost ? 'Edit Article' : 'Create New Article'}</h3>
+                <h3 className="text-xl font-black uppercase tracking-tight">{editingPost ? 'Edit Article' : 'Create New Article'}</h3>
               </div>
               <button onClick={resetForm} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
                 <X size={20} />
@@ -410,7 +476,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Post Title *</label>
+                  <label className="text-[11px] font-black uppercase tracking-wider text-text-secondary">Post Title *</label>
                   <input 
                     required
                     type="text" 
@@ -423,13 +489,13 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 
                 <div className="space-y-2 md:col-span-2">
                   <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Featured Image URL</label>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-text-secondary">Featured Image URL</label>
                     <button 
                       type="button" 
                       onClick={() => setFormData({...formData, imageUrl: `https://images.unsplash.com/photo-1541339907198-e08759df9a13?auto=format&fit=crop&q=80&w=1000`})}
                       className="text-[10px] flex items-center gap-1 text-red-primary font-bold hover:underline"
                     >
-                      <Sparkles size={12} /> Suggest Image
+                      <Sparkles size={12} /> Suggest AI Image
                     </button>
                   </div>
                   <input 
@@ -442,157 +508,34 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Short Description (Sarkari Intro)</label>
+                  <label className="text-[11px] font-black uppercase tracking-wider text-text-secondary">Short Description (English Intro)</label>
                   <textarea 
                     rows={3}
                     className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium"
                     value={formData.shortDescription}
                     onChange={e => setFormData({ ...formData, shortDescription: e.target.value })}
-                    placeholder="Brief intro about the post..."
+                    placeholder="Brief intro in English for SEO..."
                   />
                 </div>
 
-                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-gray-50/50 dark:bg-gray-800/30">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-red-primary">Important Dates</label>
-                    <button type="button" onClick={() => setFormData({...formData, importantDates: [...formData.importantDates, {label: '', value: ''}]})} className="text-[10px] bg-red-primary text-white px-2 py-1 rounded font-bold">+ Add Row</button>
-                  </div>
-                  {formData.importantDates.map((d, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input type="text" placeholder="Label (e.g. Apply Start)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={d.label} onChange={e => {
-                        const newDates = [...formData.importantDates];
-                        newDates[i].label = e.target.value;
-                        setFormData({...formData, importantDates: newDates});
-                      }} />
-                      <input type="text" placeholder="Value (e.g. 01/01/2025)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs text-red-primary font-bold" value={d.value} onChange={e => {
-                        const newDates = [...formData.importantDates];
-                        newDates[i].value = e.target.value;
-                        setFormData({...formData, importantDates: newDates});
-                      }} />
-                      <button type="button" onClick={() => setFormData({...formData, importantDates: formData.importantDates.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-gray-50/50 dark:bg-gray-800/30">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-red-primary">Application Fee</label>
-                    <button type="button" onClick={() => setFormData({...formData, applicationFee: [...formData.applicationFee, {label: '', value: ''}]})} className="text-[10px] bg-red-primary text-white px-2 py-1 rounded font-bold">+ Add Row</button>
-                  </div>
-                  {formData.applicationFee.map((f, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input type="text" placeholder="Category (e.g. Gen/OBC)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={f.label} onChange={e => {
-                        const newFees = [...formData.applicationFee];
-                        newFees[i].label = e.target.value;
-                        setFormData({...formData, applicationFee: newFees});
-                      }} />
-                      <input type="text" placeholder="Fee (e.g. ₹ 100/-)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs text-red-primary font-bold" value={f.value} onChange={e => {
-                        const newFees = [...formData.applicationFee];
-                        newFees[i].value = e.target.value;
-                        setFormData({...formData, applicationFee: newFees});
-                      }} />
-                      <button type="button" onClick={() => setFormData({...formData, applicationFee: formData.applicationFee.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-blue-50/50 dark:bg-blue-900/10">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-blue-900 dark:text-blue-400">Vacancy Details & Total Posts</label>
-                    <button type="button" onClick={() => setFormData({...formData, vacancyDetails: [...formData.vacancyDetails, {category: '', posts: ''}]})} className="text-[10px] bg-blue-900 text-white px-2 py-1 rounded font-bold">+ Add Category</button>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <label className="text-[10px] font-bold uppercase text-text-secondary block mb-1">Grand Total Post Count</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 1189" 
-                      className="w-full bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-2 text-sm font-black text-blue-900" 
-                      value={formData.totalPosts} 
-                      onChange={e => setFormData({...formData, totalPosts: e.target.value})} 
-                    />
-                  </div>
-
-                  {formData.vacancyDetails.map((v, i) => (
-                    <div key={i} className="flex gap-2 mt-2">
-                      <input type="text" placeholder="Category (e.g. UR)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={v.category} onChange={e => {
-                        const newVac = [...formData.vacancyDetails];
-                        newVac[i].category = e.target.value;
-                        setFormData({...formData, vacancyDetails: newVac});
-                      }} />
-                      <input type="text" placeholder="Posts (e.g. 500)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs font-bold" value={v.posts} onChange={e => {
-                        const newVac = [...formData.vacancyDetails];
-                        newVac[i].posts = e.target.value;
-                        setFormData({...formData, vacancyDetails: newVac});
-                      }} />
-                      <button type="button" onClick={() => setFormData({...formData, vacancyDetails: formData.vacancyDetails.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-green-50/50 dark:bg-green-900/10">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-green-700">Important Links</label>
-                    <button type="button" onClick={() => setFormData({...formData, importantLinks: [...formData.importantLinks, {label: '', url: ''}]})} className="text-[10px] bg-green-700 text-white px-2 py-1 rounded font-bold">+ Add Link</button>
-                  </div>
-                  {formData.importantLinks.map((l, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input type="text" placeholder="Label (e.g. Apply Online)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={l.label} onChange={e => {
-                        const newLinks = [...formData.importantLinks];
-                        newLinks[i].label = e.target.value;
-                        setFormData({...formData, importantLinks: newLinks});
-                      }} />
-                      <input type="text" placeholder="URL (https://...)" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs text-blue-link" value={l.url} onChange={e => {
-                        const newLinks = [...formData.importantLinks];
-                        newLinks[i].url = e.target.value;
-                        setFormData({...formData, importantLinks: newLinks});
-                      }} />
-                      <button type="button" onClick={() => setFormData({...formData, importantLinks: formData.importantLinks.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-4 md:col-span-2 p-4 border border-border-color rounded-xl bg-orange-50/50 dark:bg-orange-900/10">
-                  <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-orange-600">FAQ Section</label>
-                    <button type="button" onClick={() => setFormData({...formData, faq: [...formData.faq, {question: '', answer: ''}]})} className="text-[10px] bg-orange-600 text-white px-2 py-1 rounded font-bold">+ Add FAQ</button>
-                  </div>
-                  {formData.faq.map((f, i) => (
-                    <div key={i} className="space-y-2 border-b border-border-color pb-2">
-                      <input type="text" placeholder="Question" className="w-full bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs font-bold" value={f.question} onChange={e => {
-                        const newFaq = [...formData.faq];
-                        newFaq[i].question = e.target.value;
-                        setFormData({...formData, faq: newFaq});
-                      }} />
-                      <div className="flex gap-2">
-                         <input type="text" placeholder="Answer" className="flex-1 bg-white dark:bg-gray-900 border border-border-color rounded px-3 py-1 text-xs" value={f.answer} onChange={e => {
-                           const newFaq = [...formData.faq];
-                           newFaq[i].answer = e.target.value;
-                           setFormData({...formData, faq: newFaq});
-                         }} />
-                         <button type="button" onClick={() => setFormData({...formData, faq: formData.faq.filter((_, idx) => idx !== i)})} className="text-red-primary"><Trash2 size={14}/></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
+                {/* Article Section */}
                 <div className="space-y-2 md:col-span-2">
                   <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Detailed English Article (2-3 Pages)</label>
+                    <label className="text-[11px] font-black uppercase tracking-wider text-text-secondary">Detailed Long Article (Full Depth)</label>
                     <button 
                       type="button" 
                       onClick={() => {
-                        const template = `## ${formData.title}\n\nDetailed Information regarding ${formData.title} is given below. Candidates are advised to read carefully.\n\n### 1. Introduction\nThis recruitment drive is aimed at filling various vacancies in the respective department. Thousands of candidates participate in this prestigious examination every year.\n\n### 2. Eligibility\nCandidates must hold a Bachelor's degree or 10th/12th depending on the post. Age relaxation applies as per govt rules.\n\n### 3. How to Apply\nFollow the steps on the official website ssc.gov.in or the respective board website. Fill the form before the last date.`;
+                        const template = `## ${formData.title}\n\nThe ${formData.title} marks a significant opportunity for job seekers in the year 2025-26. This recruitment drive aims to appoint dedicated professionals who meet the stringent yet fair eligibility criteria set by the board.\n\n### Detailed Breakdown & Selection Process\nThe selection involves multiple phases including a written examination, followed by standard verification and skill tests. Thousands of candidates prepare for this exam every single year, making it one of the most competitive fields in the government sector.\n\n### Career Growth and Benefits\nWorking under this department offers not just a stable career but extensive benefits including healthcare, retirement plans, and standard governmental increments. Candidates are advised to prepare systematically, focusing on the current exam pattern as provided in the official notification...`;
                         setFormData({...formData, longArticle: template});
                       }}
                       className="text-[10px] flex items-center gap-1 text-red-primary font-bold hover:underline"
                     >
-                      <Sparkles size={12} /> Auto-Generate Draft
+                      <Sparkles size={12} /> Generate Long Article Draft
                     </button>
                   </div>
                   <textarea 
                     rows={12}
-                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium"
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium whitespace-pre-wrap"
                     value={formData.longArticle}
                     onChange={e => setFormData({ ...formData, longArticle: e.target.value })}
                     placeholder="Write a long detailed article in English with all details..."
@@ -600,9 +543,9 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Category *</label>
+                  <label className="text-[11px] font-black uppercase tracking-wider text-text-secondary">Category *</label>
                   <select 
-                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium appearance-none"
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-bold appearance-none"
                     value={formData.category}
                     onChange={e => setFormData({ ...formData, category: e.target.value })}
                   >
@@ -612,104 +555,79 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Tags</label>
+                  <label className="text-[11px] font-black uppercase tracking-wider text-text-secondary">Tags (Keywords)</label>
                   <input 
                     type="text" 
                     className="w-full bg-gray-50 dark:bg-gray-800 border border-border-color rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-red-primary/20 font-medium"
                     value={formData.tags}
                     onChange={e => setFormData({ ...formData, tags: e.target.value })}
-                    placeholder="comma separated tags"
-                  />
-                </div>
-                <div className="flex items-center gap-8 py-2 md:col-span-2">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input 
-                      type="checkbox" 
-                      checked={formData.isNew}
-                      onChange={e => setFormData({ ...formData, isNew: e.target.checked })}
-                      className="w-5 h-5 rounded accent-red-primary"
-                    />
-                    <span className="text-sm font-bold text-text-secondary group-hover:text-[var(--text-primary)] transition-colors">Show NEW Badge</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <input 
-                      type="checkbox" 
-                      checked={formData.isHot}
-                      onChange={e => setFormData({ ...formData, isHot: e.target.checked })}
-                      className="w-5 h-5 rounded accent-orange-500"
-                    />
-                    <span className="text-sm font-bold text-text-secondary group-hover:text-[var(--text-primary)] transition-colors">Show HOT Badge</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Article HTML/Text Content *</label>
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl overflow-hidden border border-border-color focus-within:ring-2 ring-red-primary/20">
-                  <textarea 
-                    required
-                    rows={15}
-                    className="w-full bg-transparent p-6 text-sm outline-none font-mono resize-y"
-                    value={formData.content}
-                    onChange={e => setFormData({ ...formData, content: e.target.value })}
-                    placeholder="Enter detailed article content here..."
+                    placeholder="ssc, jobs, sarkari result, upsc"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col md:flex-row justify-end gap-3 pt-6 border-t border-border-color/50">
+              <div className="flex flex-col md:flex-row justify-end gap-3 pt-8 border-t border-border-color/50">
                 <button 
                   type="button" 
                   onClick={resetForm}
-                  className="px-8 py-3 rounded-xl text-sm font-bold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all font-mono"
+                  className="px-10 py-3 rounded-xl text-[11px] font-black bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all font-mono uppercase tracking-widest"
                 >
-                  DISCARD
+                  Discard Changes
                 </button>
                 <button 
                   type="submit"
-                  className="px-10 py-3 rounded-xl bg-red-primary text-white text-sm font-bold shadow-xl shadow-red-primary/20 flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all uppercase tracking-widest"
+                  className="px-12 py-3 rounded-xl bg-red-primary text-white text-[11px] font-black shadow-xl shadow-red-primary/20 flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all uppercase tracking-[2px]"
                 >
-                  <Save size={18} /> {editingPost ? 'Update Entry' : 'Publish Entry'}
+                  <Save size={18} /> {editingPost ? 'Update & Live' : 'Publish to Portal'}
                 </button>
               </div>
             </form>
           </div>
-        ) : (
-          <div className="bg-white dark:bg-gray-900 border border-border-color rounded-2xl overflow-hidden shadow-xl">
+        )}
+
+        {activeTab === 'posts' && !isAdding && (
+          <div className="bg-white dark:bg-gray-900 border border-border-color rounded-2xl overflow-hidden shadow-xl animate-in fade-in duration-500">
             <div className="bg-gray-50 dark:bg-gray-800/50 px-8 py-5 border-b border-border-color flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <RefreshCw size={18} className={`text-red-primary ${loading ? 'animate-spin' : ''}`} />
-                <h3 className="text-base font-bold uppercase tracking-widest text-text-secondary">Published Content ({posts.length})</h3>
+                <h3 className="text-xs font-black uppercase tracking-[3px] text-text-secondary">Content Management ({posts.length})</h3>
               </div>
-              <div className="text-[10px] font-bold opacity-40 uppercase">Last updated: {new Date().toLocaleTimeString()}</div>
+              <div className="flex items-center gap-4">
+                 <div className="relative hidden sm:block">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-40" size={14} />
+                    <input type="text" placeholder="Search entries..." className="bg-white dark:bg-gray-900 border border-border-color rounded-full pl-9 pr-4 py-1.5 text-[10px] font-bold outline-none focus:ring-2 ring-red-primary/20 w-60" />
+                 </div>
+                 <button onClick={() => setIsAdding(true)} className="bg-red-primary text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-primary/10">Add Post</button>
+              </div>
             </div>
             
             <div className="divide-y divide-border-color">
               {posts.length === 0 && !loading ? (
-                <div className="p-20 text-center text-sm text-text-secondary opacity-50">
-                  No content found. Start by clicking "New Post" above.
+                <div className="p-20 text-center">
+                   <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 opacity-40"><FilePlus size={32} /></div>
+                   <p className="text-xs text-text-secondary font-bold uppercase tracking-widest opacity-50">No published content yet</p>
                 </div>
               ) : (
                 posts.map(post => (
-                  <div key={post.id} className="p-6 md:px-8 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+                  <div key={post.id} className="p-6 md:px-8 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group">
                     <div className="flex-1 min-w-0 pr-4">
                       <div className="flex flex-wrap items-center gap-3 mb-2">
-                        <span className="text-[11px] font-extrabold uppercase bg-red-primary/10 text-red-primary px-3 py-1 rounded-full border border-red-primary/20">
+                        <span className="text-[10px] font-black uppercase bg-red-primary/10 text-red-primary px-3 py-1 rounded-md border border-red-primary/20">
                           {categoryMap[post.category as keyof typeof categoryMap]?.label}
                         </span>
                         <div className="flex gap-2">
-                          {post.isNew && <span className="w-2 h-2 rounded-full bg-red-primary animate-pulse" title="New Badge On"></span>}
-                          {post.isHot && <span className="w-2 h-2 rounded-full bg-orange-500" title="Hot Badge On"></span>}
+                          {post.isNew && <span className="w-1.5 h-1.5 rounded-full bg-red-primary animate-pulse"></span>}
+                          {post.isHot && <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>}
                         </div>
-                        <span className="text-[10px] font-mono text-text-secondary opacity-60">{new Date(post.date).toLocaleDateString()}</span>
+                        <span className="text-[10px] font-mono text-text-secondary opacity-30 select-none">{new Date(post.date).toLocaleDateString()}</span>
                       </div>
-                      <h4 className="text-base font-bold truncate group-hover:text-red-primary transition-colors">{post.title}</h4>
+                      <h4 className="text-sm font-black truncate group-hover:text-red-primary transition-colors pr-10">{post.title}</h4>
                       <div className="flex items-center gap-4 mt-2">
-                        <span className="text-[10px] text-text-secondary font-bold flex items-center gap-1 opacity-70">
-                          <Eye size={12} /> {post.views?.toLocaleString() || 0} VIEWS
+                        <span className="text-[9px] text-text-secondary font-black flex items-center gap-1 opacity-70 uppercase tracking-tighter">
+                          <Eye size={12} className="text-red-primary" /> {post.views?.toLocaleString() || 0} Total Traffic
                         </span>
-                        <span className="text-[10px] text-text-secondary font-bold opacity-70 uppercase">
-                          DB ID: <span className="font-mono text-[9px]">{post.id}</span>
+                        <span className="text-[9px] text-text-secondary font-black opacity-30 uppercase tracking-widest hidden sm:block">
+                          Object Hash: <span className="font-mono">{post.id.slice(0, 8)}...</span>
                         </span>
                       </div>
                     </div>
@@ -719,32 +637,38 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                         className="w-10 h-10 flex items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/10 text-blue-link hover:bg-blue-link hover:text-white transition-all shadow-sm"
                         title="Edit Article"
                       >
-                        <Edit2 size={18} />
+                        <Edit2 size={16} />
                       </button>
                       <button 
                         onClick={() => handleDelete(post.id)}
                         className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/10 text-red-primary hover:bg-red-primary hover:text-white transition-all shadow-sm"
                         title="Delete Article"
                       >
-                        <Trash2 size={18} />
+                        <Trash size={16} />
                       </button>
                     </div>
                   </div>
                 ))
               )}
             </div>
+            
+            <div className="p-4 bg-gray-50 dark:bg-gray-800/20 border-t border-border-color text-center">
+               <p className="text-[10px] font-black text-text-secondary opacity-40 uppercase tracking-[4px]">End of content library</p>
+            </div>
           </div>
         )}
-      </div>
 
-      <div className="text-center pb-20">
-        <button 
-          onClick={onBack}
-          className="px-8 py-3 rounded-xl border border-border-color text-sm font-bold text-text-secondary hover:text-red-primary hover:border-red-primary transition-all"
-        >
-          Return to Portal Home
-        </button>
-      </div>
+        {(activeTab === 'ai' || activeTab === 'seo' || activeTab === 'ads' || activeTab === 'settings') && (
+          <div className="bg-white dark:bg-gray-900 border border-border-color p-20 rounded-2xl shadow-xl animate-in zoom-in-95 duration-500 text-center">
+             <div className="w-24 h-24 bg-red-primary/5 rounded-full flex items-center justify-center mx-auto mb-6 text-red-primary border border-red-primary/10">
+                <Settings size={48} className="animate-spin-slow" />
+             </div>
+             <h3 className="text-xl font-black uppercase tracking-widest text-gray-900 dark:text-white mb-2">{activeTab.toUpperCase()} Module</h3>
+             <p className="text-sm text-text-secondary max-w-sm mx-auto mb-8 font-medium">This module is currently being provisioned in the backend. Full integration with the AI engine and SEO trackers will be available in the next system update.</p>
+             <button onClick={() => setActiveTab('dashboard')} className="bg-red-primary text-white px-10 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-red-primary/20 hover:brightness-110 active:scale-95 transition-all">Return to Core Dashboard</button>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
