@@ -77,7 +77,7 @@ const ADMIN_PASS = 'admin@careersetu';
 
 export default function AdminPanel({ onBack }: { onBack: () => void }) {
   const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem('cs_admin_session') === 'active');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'categories' | 'seo' | 'ai' | 'ads' | 'settings' | 'home-builder' | 'media' | 'analytics' | 'contacts' | 'notifications' | 'security' | 'maintenance' | 'faqs' | 'backups' | 'newsletter'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'posts' | 'categories' | 'seo' | 'ai' | 'settings' | 'home-builder' | 'media' | 'analytics' | 'contacts' | 'notifications' | 'security' | 'maintenance' | 'faqs' | 'backups' | 'newsletter'>('dashboard');
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<any | null>(null);
@@ -388,7 +388,6 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
             { id: 'ai', icon: <Cpu size={18} />, label: '🤖 AI Center' },
             { id: 'home-builder', icon: <Grid size={18} />, label: '🎨 Home Builder' },
             { id: 'media', icon: <ImageIcon size={18} />, label: '📂 Media Manager' },
-            { id: 'ads', icon: <Megaphone size={18} />, label: '📢 Ad Manager' },
             { id: 'notifications', icon: <BellRing size={18} />, label: '🔔 Notifications' },
             { id: 'seo', icon: <Search size={18} />, label: '🔍 SEO Manager' },
             { id: 'analytics', icon: <BarChart3 size={18} />, label: '📈 Analytics' },
@@ -465,7 +464,7 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
               {[
                 { label: 'Total Posts', value: stats.totalPosts, icon: <FilePlus />, color: 'bg-blue-500' },
                 { label: 'Total Views', value: stats.totalViews.toLocaleString(), icon: <Eye />, color: 'bg-purple-500' },
-                { label: 'Ad Revenue', value: '$1,245.80', icon: <Megaphone />, color: 'bg-indigo-500' },
+                { label: 'Active Users', value: '254', icon: <Users />, color: 'bg-indigo-500' },
                 { label: 'Today Traffic', value: '4,102', icon: <Activity />, color: 'bg-green-500' },
               ].map((stat, i) => (
                 <div key={i} className="bg-white dark:bg-gray-900 border border-border-color p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
@@ -1083,66 +1082,6 @@ export default function AdminPanel({ onBack }: { onBack: () => void }) {
                             <h4 className="text-[10px] font-bold text-green-700 uppercase mb-2 tracking-widest">SEO Health Score</h4>
                             <div className="text-3xl font-black text-green-700">94/100</div>
                             <p className="text-[9px] font-bold text-green-600 uppercase mt-1">Excellent: Optimization optimal</p>
-                         </div>
-                      </div>
-                   </div>
-                </div>
-              )}
-
-              {/* Module: Ads */}
-              {activeTab === 'ads' && (
-                <div className="bg-white dark:bg-gray-900 border border-border-color p-8 rounded-2xl shadow-sm">
-                   <div className="flex justify-between items-center mb-8">
-                     <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 text-indigo-600"><Megaphone size={18} /> Ad Central</h3>
-                     <button onClick={() => showToast('Ad Layout Applied')} className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20">Apply Ad Layout</button>
-                   </div>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-6">
-                         <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-border-color">
-                            <div className="flex justify-between items-center mb-4">
-                               <h4 className="text-[10px] font-black uppercase tracking-widest">AdSense Approval</h4>
-                               <span className="text-[9px] font-bold text-green-500">ACTIVE</span>
-                            </div>
-                            <div className="space-y-1.5">
-                               <label className="text-[10px] font-black uppercase text-text-secondary">Publisher ID (ca-pub)</label>
-                               <input type="text" className="w-full bg-white dark:bg-gray-900 border border-border-color rounded-lg px-4 py-2 text-sm font-mono" defaultValue="ca-pub-1234567890123456" />
-                            </div>
-                         </div>
-                         <div className="p-6 border border-border-color rounded-2xl space-y-4">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-text-secondary">Ad Placement Toggles</h4>
-                            {[
-                               { label: 'Header Sticky Ads', active: true },
-                               { label: 'Inside Article Ads', active: true },
-                               { label: 'Sidebar Floating Ads', active: false },
-                               { label: 'Footer Announcement', active: true }
-                            ].map(ad => (
-                               <div key={ad.label} className="flex justify-between items-center py-2 border-b border-border-color last:border-0">
-                                  <span className="text-xs font-bold">{ad.label}</span>
-                                  <div className={`w-10 h-5 rounded-full relative p-0.5 cursor-pointer transition-colors ${ad.active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'}`}>
-                                     <div className={`w-4 h-4 rounded-full bg-white transition-all ${ad.active ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                                  </div>
-                               </div>
-                            ))}
-                         </div>
-                      </div>
-                      <div className="space-y-6">
-                         <div className="bg-indigo-900 text-white p-8 rounded-2xl shadow-xl shadow-indigo-900/40 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-8 opacity-10"><Megaphone size={120} /></div>
-                            <p className="text-[10px] font-black uppercase tracking-[4px] mb-2 opacity-60">Estimated Revenue</p>
-                            <h3 className="text-4xl font-black mb-4">$1,245.80</h3>
-                            <div className="flex items-center gap-2 text-xs font-bold bg-white/10 w-fit px-3 py-1 rounded-full">
-                               <Activity size={14} className="text-green-400" /> +12.5% this week
-                            </div>
-                         </div>
-                         <div className="bg-white dark:bg-gray-900 border border-border-color p-6 rounded-2xl shadow-sm">
-                            <h4 className="text-xs font-black uppercase tracking-widest mb-4">Ad History & Clicks</h4>
-                            <div className="h-40 flex items-end gap-1">
-                               {[20, 50, 30, 80, 40, 60, 90, 70, 40, 60, 50, 80].map((h, i) => (
-                                 <div key={i} className="flex-1 bg-indigo-100 dark:bg-indigo-900/20 rounded-t-sm relative group">
-                                    <div className="absolute bottom-0 w-full bg-indigo-500 rounded-t-sm" style={{ height: h + '%' }}></div>
-                                 </div>
-                               ))}
-                            </div>
                          </div>
                       </div>
                    </div>

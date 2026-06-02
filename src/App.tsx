@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 import { allData, tickerItems, quickLinks, categoryMap, JobItem } from './data';
 
-import AdSense from './components/AdSense.tsx';
 import AdminPanel from './components/AdminPanel.tsx';
 import { 
   collection, 
@@ -66,31 +65,6 @@ export default function App() {
     if (path === '/admin') {
       setCurrentPage('admin');
     }
-
-    let socialBar: HTMLScriptElement | null = null;
-    let popunder: HTMLScriptElement | null = null;
-
-    // Only run global ads IF NOT on admin page
-    if (currentPage !== 'admin') {
-      socialBar = document.createElement('script');
-      socialBar.src = 'https://pl29606893.effectivecpmnetwork.com/a7/ae/7f/a7ae7f68b3162c91ce5838defee20d25.js';
-      socialBar.async = true;
-      document.body.appendChild(socialBar);
-
-      popunder = document.createElement('script');
-      popunder.src = 'https://pl29606927.effectivecpmnetwork.com/4b/c2/4a/4bc24a29b0aa581eb392fd042161cdad.js';
-      popunder.async = true;
-      document.body.appendChild(popunder);
-    }
-
-    return () => {
-      if (socialBar && document.body.contains(socialBar)) {
-        document.body.removeChild(socialBar);
-      }
-      if (popunder && document.body.contains(popunder)) {
-        document.body.removeChild(popunder);
-      }
-    };
   }, [currentPage]);
 
   // Fetch posts from Supabase
@@ -272,16 +246,6 @@ export default function App() {
     );
   }, [searchQuery, currentAllData]);
 
-  useEffect(() => {
-    // Initialize AdSense on route/page changes
-    try {
-      // @ts-ignore
-      (window.adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (e) {
-      console.warn('AdSense push failed - this is expected in development without a verified domain');
-    }
-  }, [currentPage, currentDetailId]);
-
   return (
     <div className="min-h-screen flex flex-col font-sans">
       {currentPage === 'admin' ? (
@@ -409,12 +373,7 @@ export default function App() {
                 </a>
               </div>
 
-              {/* Ad Slot (Home Top) */}
-              <div className="mb-4">
-                <AdSense slot="8558634569" className="min-h-[250px]" />
-              </div>
-
-              {/* Sections */}
+              {/* Join Buttons */}
               <div className="space-y-6">
                 {(Object.keys(categoryMap) as Array<keyof typeof categoryMap>).map((catKey, idx) => (
                   <React.Fragment key={catKey}>
@@ -426,11 +385,6 @@ export default function App() {
                       onToggleBookmark={toggleBookmark}
                       isBookmarked={bookmarks.includes.bind(bookmarks)}
                     />
-                    {idx % 1 === 0 && (
-                      <div className="my-2 border border-border-color/5 overflow-hidden">
-                        <AdSense slot="8558634569" className="min-h-[100px]" />
-                      </div>
-                    )}
                   </React.Fragment>
                 ))}
               </div>
@@ -482,9 +436,6 @@ export default function App() {
 
         {/* Sidebar */}
         <aside className="space-y-6">
-          {/* Ad unit (Sidebar Top) */}
-          <AdSense slot="8558634569" format="fluid" />
-
           {/* Sidebar Widget: Trending */}
           <SidebarWidget title="🔥 Trending / ट्रेंडिंग">
             <ul className="divide-y divide-border-color">
@@ -500,9 +451,6 @@ export default function App() {
               ))}
             </ul>
           </SidebarWidget>
-
-          {/* Sidebar Ad unit */}
-          <AdSense slot="8558634569" />
 
           <SidebarWidget title="📂 Categories / श्रेणियां">
             <ul className="divide-y divide-border-color">
@@ -533,17 +481,10 @@ export default function App() {
 
           {/* Sticky Sidebar Ad unit */}
           <div className="sticky top-20 space-y-4">
-             <div className="bg-white dark:bg-gray-900 border border-border-color p-2 rounded-lg text-center shadow-md">
-               <p className="text-[8px] uppercase font-bold text-gray-400 mb-1">Sponsored</p>
-               <AdSense slot="8558634569" format="fluid" />
-             </div>
              <div className="bg-blue-600 text-white p-4 rounded-xl shadow-lg">
                <h4 className="text-xs font-bold uppercase mb-2">🚀 Free Job Alert</h4>
                <p className="text-[10px] opacity-90 leading-relaxed mb-3">Get Latest Jobs, Results & Admit Card updates instantly on your mobile.</p>
                <button onClick={() => window.open('https://t.me/CareerSetu76', '_blank')} className="w-full bg-white text-blue-600 py-2 rounded-lg text-[10px] font-black uppercase shadow-inner">Subscribe Telegram</button>
-             </div>
-             <div className="bg-white dark:bg-gray-900 border border-border-color p-2 rounded-lg text-center">
-               <ScriptAdBanner />
              </div>
           </div>
         </aside>
@@ -787,283 +728,251 @@ function SidebarWidget({ title, children }: { title: string, children: React.Rea
 
 function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, isBookmarked, shareWhatsApp, shareTelegram, copyLink }: any) {
   const item = allData.find((d: any) => d.id === id);
-  if (!item) return <div>Post not found</div>;
+  if (!item) return <div className="p-20 text-center font-black uppercase tracking-tighter text-3xl opacity-20">Post Not Found</div>;
   
   const cat = categoryMap[item.category as keyof typeof categoryMap];
   const related = allData.filter((d: any) => d.category === item.category && d.id !== id).slice(0, 5);
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-500">
-      <div className="flex justify-between items-center bg-[var(--card-bg)] border border-border-color rounded-lg p-3 shadow-sm">
-        <button onClick={onBack} className="flex items-center gap-1.5 text-xs font-bold text-text-secondary hover:text-red-primary transition-colors">
-          <ArrowLeft size={14} /> वापस जाएं (BACK)
-        </button>
-        <div className="flex gap-2">
-            <button onClick={() => window.print()} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-text-secondary" title="Print Article">
-              <Printer size={16} />
-            </button>
-            <button 
-                onClick={() => toggleBookmark(item.id)}
-                className={`p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 ${isBookmarked ? 'text-red-primary' : 'text-text-secondary'}`}
-                title="Save Article"
-            >
-                <Bookmark size={16} fill={isBookmarked ? "currentColor" : "none"} />
-            </button>
+    <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-500">
+      <div className="bg-[var(--card-bg)] border border-border-color rounded-lg overflow-hidden shadow-md">
+        {/* Breadcrumb row */}
+        <div className="p-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+           <button onClick={onBack} className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 text-[11px] font-bold hover:underline">
+              <ArrowLeft size={14} /> Back to {cat.hindi}
+           </button>
+           <div className="flex items-center gap-3">
+             <button onClick={() => toggleBookmark(item.id)} className={`text-gray-400 hover:text-red-primary ${isBookmarked ? 'text-red-primary' : ''}`}>
+               <Bookmark size={18} fill={isBookmarked ? "currentColor" : "none"} />
+             </button>
+             <button onClick={() => window.print()} className="text-gray-400 hover:text-blue-700">
+               <Printer size={18} />
+             </button>
+           </div>
         </div>
-      </div>
 
-      <article className="bg-[var(--card-bg)] border border-border-color rounded-lg overflow-hidden shadow-md">
-        {/* Sarkari Style Header Banner */}
-        <div className="bg-gradient-to-r from-red-800 to-red-800 text-white p-4 text-center border-b-2 border-orange-500">
-           <h1 className="text-lg md:text-2xl font-black uppercase tracking-tight leading-tight mb-1">
+        {/* Title area */}
+        <div className="p-4 border-b border-gray-100 dark:border-gray-800 text-center uppercase font-black">
+           <p className="text-blue-800 dark:text-blue-400 font-bold text-xs mb-1">
+             Bihar Public Service Commission (BPSC)
+           </p>
+           <h1 className="text-lg md:text-xl font-bold text-blue-900 dark:text-blue-300 leading-tight">
              {item.title}
            </h1>
-             <div className="flex justify-center flex-wrap gap-2 text-[9px] font-bold opacity-90">
-               <span className="bg-yellow-400 text-red-900 px-2 py-0.5 rounded shadow-sm">Updated : {new Date(item.date).toLocaleDateString()}</span>
-               <span className="bg-white/20 px-2 py-0.5 rounded uppercase">{cat.label}</span>
-               <span className="bg-white/20 px-2 py-0.5 rounded uppercase">👁️ {item.views.toLocaleString()} Views</span>
-               <button 
-                 onClick={() => {
-                   if (navigator.share) {
-                     navigator.share({
-                       title: item.title,
-                       text: `Check out ${item.title} on CareerSetu`,
-                       url: window.location.href,
-                     }).catch(console.error);
-                   } else {
-                     navigator.clipboard.writeText(window.location.href);
-                     alert('Link copied to clipboard!');
-                   }
-                 }}
-                 className="bg-white/20 px-2 py-0.5 rounded uppercase flex items-center gap-1 hover:bg-white/30 transition-colors"
-               >
-                 <Share2 size={10} /> Share
-               </button>
-             </div>
+           <div className="flex justify-center gap-4 text-[10px] font-bold mt-2">
+             <span className="text-red-600">Post Date: {item.date}</span>
+             <span className="bg-yellow-100 dark:bg-yellow-950/20 text-yellow-800 px-2 py-0.5 rounded shadow-sm border border-yellow-200">
+               {cat.hindi} Updates
+             </span>
+           </div>
         </div>
+           <div className="mt-4">
+             <a href="https://t.me/CareerSetu76" target="_blank" rel="noopener noreferrer" className="inline-block animate-pulse text-red-600 font-black border-b-2 border-red-600 pb-0.5 text-[12px] uppercase">
+               Download SarkariResult App Now
+             </a>
+           </div>
 
-        <div className="p-4 md:p-6 space-y-8">
-            {/* Join Buttons (Prominent) */}
-            <AdSense slot="8558634569" className="min-h-[250px]" />
-            <div className="grid grid-cols-2 gap-3">
-              <a href="https://whatsapp.com/channel/0029Vb86tg3D38CMUPve8U0a" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#25D366] text-white py-2 rounded font-bold text-xs shadow-sm hover:brightness-105 transition-all">
-                <MessageCircle size={16} /> WhatsApp
-              </a>
-              <a href="https://t.me/CareerSetu76" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#0088CC] text-white py-2 rounded font-bold text-xs shadow-sm hover:brightness-105 transition-all">
-                <Send size={16} /> Telegram
-              </a>
-            </div>
+           <div className="flex justify-center gap-2 mt-5">
+             <button onClick={() => shareWhatsApp(item.title)} className="bg-[#25D366] text-white py-1 px-3 rounded font-bold text-[10px] uppercase shadow-sm">WhatsApp</button>
+             <button onClick={() => shareTelegram(item.title)} className="bg-[#0088CC] text-white py-1 px-3 rounded font-bold text-[10px] uppercase shadow-sm">Telegram</button>
+           </div>
 
-            {/* Featured Image */}
-            {item.imageUrl && (
-              <div className="rounded-xl overflow-hidden border-4 border-red-primary/10 shadow-lg">
-                <img 
-                  src={item.imageUrl} 
-                  alt={item.title} 
-                  className="w-full h-auto object-cover max-h-[400px]"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="bg-gray-100 dark:bg-gray-800 py-2 px-4 text-center">
-                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">{item.title} Official Notification Graphic</p>
-                </div>
-              </div>
-            )}
-
-            {/* Ad Slot */}
-            <div className="bg-transparent text-center space-y-2">
-              <AdSense slot="8558634569" format="fluid" />
-            </div>
-
-            <div className="prose prose-sm dark:prose-invert max-w-none space-y-8">
+        <div className="p-4 md:p-6">
+            <div className="max-w-4xl mx-auto space-y-8">
                 {/* Short Description */}
-                <div className="text-center rounded-lg border-2 border-dashed border-red-primary/30 p-4 bg-red-primary/5">
-                   <p className="text-[13px] leading-relaxed font-medium text-[var(--text-primary)]">
-                     {item.shortDescription || `Bihar Public Service Commission (BPSC) Has Released A Notification On Its Official Website For The ${item.title}. Interested Candidates Can Check The Complete Details For This Recruitment 2025 Given Below.`}
-                   </p>
+                <div className="text-[14px] leading-relaxed text-gray-800 dark:text-gray-200">
+                    <p className="font-medium text-justify">
+                      {item.shortDescription || `Bihar Public Service Commission (BPSC) Has Released A Notification On Its Official Website For The ${item.title}. This Recruitment Is For 1189 Posts. The BPSC Application Form Has Started On 07 May 2026. Candidates Can Check The Complete Details Given Below.`}
+                    </p>
                 </div>
 
-                {/* Important Dates & Application Fee Table */}
-                <div className="overflow-hidden border-2 border-red-primary rounded-lg">
-                  <div className="bg-red-primary text-white text-center py-2 font-bold uppercase text-sm">
-                    Important Dates & Application Fee
+                <div className="border border-[#720e0e] rounded overflow-hidden">
+                  <div className="bg-[#720e0e] text-white text-center py-2 font-bold uppercase text-[13px]">
+                    {item.title} Short Details
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-red-primary text-[var(--text-primary)]">
-                    <div className="p-0">
-                      <table className="w-full text-[12px]">
-                        <thead>
-                          <tr className="bg-red-50 dark:bg-red-950/30 text-red-primary text-center font-bold">
-                            <th className="py-2 px-4 border-b border-red-primary font-bold uppercase" colSpan={2}>Important Dates</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                          {(item.importantDates || [
-                            { label: 'Online Apply Start', value: '07 May 2026' },
-                            { label: 'Registration Last Date', value: '31 May 2026' },
-                            { label: 'Fee Payment Last Date', value: '31 May 2026' },
-                            { label: 'Exam Date', value: 'Update Soon' }
-                          ]).map((row: any, i: number) => (
-                            <tr key={i}>
-                              <td className="py-2 px-4 font-bold border-r border-gray-200 dark:border-gray-800 w-1/2">{row.label}</td>
-                              <td className="py-2 px-4 text-red-primary font-bold">{row.value}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <div className="p-0">
-                      <table className="w-full text-[12px]">
-                        <thead>
-                          <tr className="bg-red-50 dark:bg-red-950/30 text-red-primary text-center font-bold">
-                            <th className="py-2 px-4 border-b border-red-primary font-bold uppercase" colSpan={2}>Application Fee</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                          {(item.applicationFee || [
-                            { label: 'Gen / OBC / EWS', value: '₹ 100/-' },
-                            { label: 'SC / ST / PH', value: '₹ 100/-' },
-                            { label: 'All Category Female', value: '₹ 100/-' },
-                            { label: 'Payment Mode', value: 'Online Only' }
-                          ]).map((row: any, i: number) => (
-                            <tr key={i}>
-                              <td className="py-2 px-4 font-bold border-r border-gray-200 dark:border-gray-800 w-1/2">{row.label}</td>
-                              <td className="py-2 px-4 text-red-primary font-bold">{row.value}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="bg-white dark:bg-gray-900 border-b border-[#720e0e] text-center py-1 text-[11px] font-black text-blue-900 dark:text-blue-300">
+                    SarkariResult.Com.Cm
                   </div>
-                </div>
-
-                <div className="overflow-hidden border-2 border-green-600 rounded-lg text-[var(--text-primary)]">
-                  <div className="bg-green-600 text-white flex justify-between items-center px-4 py-2 font-bold uppercase text-[13px]">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                      <span>Notification Age Limits</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#720e0e]">
+                    <div className="bg-white dark:bg-gray-900">
+                       <div className="bg-[#720e0e] text-white text-center py-1 font-bold text-[11px]">Important Dates</div>
+                       <table className="w-full text-[12px]">
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                             {(item.importantDates || [
+                                { label: 'Online Apply Start', value: '07 May 2026' },
+                                { label: 'Online Apply Last Date', value: '31 May 2026' },
+                                { label: 'Fee Payment Last Date', value: '31 May 2026' },
+                                { label: 'Exam Date', value: 'Notify Later' },
+                                { label: 'Admit Card', value: 'Before Exam' }
+                             ]).map((row: any, i: number) => (
+                                <tr key={i}>
+                                   <td className="py-2 px-3 font-bold text-gray-700 dark:text-gray-300 border-r border-[#720e0e]/10 w-1/2 flex items-center gap-1">
+                                      <span className="bg-black w-1 h-1 rounded-full"></span> {row.label} :
+                                   </td>
+                                   <td className="py-2 px-3 font-black text-black dark:text-white uppercase">{row.value}</td>
+                                </tr>
+                             ))}
+                          </tbody>
+                       </table>
                     </div>
-                    <span className="bg-white text-green-700 px-2 py-0.5 rounded text-[11px]">Total Post</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] divide-y md:divide-y-0 md:divide-x divide-green-600">
-                    <div className="p-4 text-[12px] space-y-2 bg-green-50/30 dark:bg-green-900/5">
-                       <ul className="list-disc pl-5 font-bold space-y-2 text-green-800 dark:text-green-300">
-                         <li>Minimum Age : 20-22 Years (Post Wise)</li>
-                         <li>Maximum Age : 37 Years (UR Male)</li>
-                         <li>Maximum Age : 40 Year (Female UR, BC/ EBC-Male & Female)</li>
-                         <li>Maximum Age : 42 Year (SC/ ST-Male & Female)</li>
-                         <li className="text-red-primary">Age Relaxation Extra as per Recruitment Rules.</li>
-                       </ul>
-                    </div>
-                    <div className="p-4 flex flex-col items-center justify-center text-center bg-white dark:bg-gray-900">
-                       <div className="text-3xl font-black text-green-700 leading-none">{item.totalPosts || '1189'}</div>
-                       <div className="text-[10px] font-bold uppercase opacity-60 mt-1">Vacancies</div>
+                    <div className="bg-white dark:bg-gray-900">
+                       <div className="bg-[#720e0e] text-white text-center py-1 font-bold text-[11px]">Application Fee</div>
+                       <table className="w-full text-[12px]">
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                             {(item.applicationFee || [
+                                { label: 'For All Category', value: '₹ 100/-' },
+                                { label: 'Payment Mode', value: 'Online Only' }
+                             ]).map((row: any, i: number) => (
+                                <tr key={i}>
+                                   <td className="py-2 px-3 font-bold text-gray-700 dark:text-gray-300 border-r border-[#720e0e]/10 w-1/2 flex items-center gap-1">
+                                      <span className="bg-black w-1 h-1 rounded-full"></span> {row.label} :
+                                   </td>
+                                   <td className="py-2 px-3 font-black text-black dark:text-white uppercase">{row.value}</td>
+                                </tr>
+                             ))}
+                             <tr>
+                                <td colSpan={2} className="py-2 px-3 text-[10px] font-bold text-gray-500 leading-tight">
+                                   * You Can Make The Payment Using The Following Methods: Debit Card, Credit Card, Internet Banking, IMPS, Cash Card / Mobile Wallet.
+                                </td>
+                             </tr>
+                          </tbody>
+                       </table>
                     </div>
                   </div>
                 </div>
 
-                {/* Vacancy Details Table */}
-                <div className="overflow-hidden border-2 border-blue-900 rounded-lg text-[var(--text-primary)]">
-                  <div className="bg-blue-900 text-white text-center py-2 font-bold uppercase text-sm">
-                    CATEGORY WISE POST DETAILS
+                {/* Age Limits Section */}
+                <div className="border border-[#006400] rounded overflow-hidden">
+                   <div className="bg-[#006400] text-white flex justify-between items-center px-4 py-1.5 font-bold uppercase text-[11px]">
+                      <span>{item.title} : Age Limit As On 01 August 2026</span>
+                      <span className="bg-[#ff4500] text-white px-2 rounded">Total Post</span>
+                   </div>
+                   <div className="grid grid-cols-1 md:grid-cols-[4fr_1fr] divide-y md:divide-y-0 md:divide-x divide-[#006400]">
+                      <div className="bg-white dark:bg-gray-900 p-3">
+                         <ul className="space-y-1 text-[12px] font-bold text-black dark:text-gray-200">
+                            <li className="flex items-center gap-2"><span className="bg-black w-1 h-1 rounded-full"></span> Minimum Age : 20-22 Years (Post Wise)</li>
+                            <li className="flex items-center gap-2"><span className="bg-black w-1 h-1 rounded-full"></span> Maximum Age : 37 Years (UR Male)</li>
+                            <li className="flex items-center gap-2"><span className="bg-black w-1 h-1 rounded-full"></span> Maximum Age : 40 Year (Female UR, BC/ EBC-Male & Female)</li>
+                            <li className="flex items-center gap-2"><span className="bg-black w-1 h-1 rounded-full"></span> Maximum Age : 42 Year (SC/ ST-Male & Female)</li>
+                            <li className="flex items-center gap-2 text-red-600 font-bold"><span className="bg-black w-1 h-1 rounded-full"></span> Bihar BPSC Provides Age Relaxation Extra As Per Their Regulations.</li>
+                         </ul>
+                      </div>
+                      <div className="bg-white dark:bg-gray-900 flex flex-col items-center justify-center p-3 text-center">
+                         <span className="text-xl md:text-2xl font-black text-black dark:text-white leading-tight">{item.totalPosts || '1189'}</span>
+                         <span className="text-[10px] font-black uppercase tracking-widest mt-1">Posts</span>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Recruitment / Vacancy Details Table */}
+                <div className="border border-[#000080] rounded overflow-hidden">
+                  <div className="bg-[#000080] text-white text-center py-1.5 font-bold uppercase text-[12px]">
+                    {item.title} Recruitment 2025 : Vacancy Details
                   </div>
-                  <table className="w-full text-[12px] text-center border-collapse">
-                    <thead className="bg-blue-50 dark:bg-blue-950/30 text-blue-900 font-bold uppercase">
-                      <tr>
-                        <th className="py-2 border-b border-blue-900">Category Name</th>
-                        <th className="py-2 border-b border-blue-900">No. Of Post</th>
+                  <table className="w-full text-center border-collapse bg-white dark:bg-gray-900">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
+                      <tr className="text-[11px] font-bold divide-x divide-[#000080]/30 border-b border-[#000080] uppercase">
+                        <th className="py-2 px-1">Post Name</th>
+                        <th className="py-2 px-1">No. Of Post</th>
+                        <th className="py-2 px-1">Eligibility Criteria</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-800 font-bold">
-                       {(item.vacancyDetails || [
-                         { category: 'General', posts: '513' },
-                         { category: 'EWS', posts: '116' },
-                         { category: 'BC', posts: '140' },
-                         { category: 'SC', posts: '175' }
-                       ]).map((row: any, i: number) => (
-                         <tr key={i}>
-                           <td className="py-2 border-r border-gray-200 dark:border-gray-800">{row.category}</td>
-                           <td className="py-2">{row.posts}</td>
-                         </tr>
-                       ))}
+                    <tbody className="divide-y divide-[#000080]/10 text-[11px] font-bold uppercase">
+                       <tr className="divide-x divide-[#000080]/10">
+                         <td className="py-3 px-2">{item.title}</td>
+                         <td className="py-3 px-2">{item.totalPosts || '1189'}</td>
+                         <td className="py-3 px-3 text-left">
+                            <ul className="space-y-1">
+                               <li className="flex items-start gap-1.5"><span className="bg-black w-1 h-1 rounded-full mt-1.5 shrink-0"></span> Candidates Must Have Passed Graduation (Bachelor's Degree) Or An Equivalent Examination From A Recognized University.</li>
+                               <li className="flex items-start gap-1.5 font-black text-blue-800 dark:text-blue-400 uppercase"><span className="bg-black w-1 h-1 rounded-full mt-1.5 shrink-0"></span> Read The Notification For More Details.</li>
+                            </ul>
+                         </td>
+                       </tr>
                     </tbody>
                   </table>
                 </div>
 
-                {/* Long Article / Content */}
-                {(item.longArticle || item.content) && (
-                  <div className="bg-white dark:bg-gray-900 p-6 md:p-10 rounded-lg border border-border-color shadow-sm">
-                    <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none text-justify markdown-body">
-                      {item.longArticle ? (
-                        <ReactMarkdown>{item.longArticle}</ReactMarkdown>
-                      ) : (
-                        <div className="whitespace-pre-wrap">{item.content}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Frequently Asked Questions (FAQ) */}
-                <AdSense slot="8558634569" />
-                {item.faq && item.faq.length > 0 && (
-                  <div className="overflow-hidden border-2 border-orange-500 rounded-lg text-[var(--text-primary)] shadow-sm">
-                    <div className="bg-orange-500 text-white text-center py-2 font-bold uppercase text-sm flex items-center justify-center gap-2">
-                       <Key size={18} /> Frequently Asked Questions (FAQ)
-                    </div>
-                    <div className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
-                      {item.faq.map((f: any, idx: number) => (
-                        <div key={idx} className="p-4 space-y-2">
-                          <h4 className="text-[13px] font-black text-red-primary flex gap-2">
-                            <span className="opacity-40">Q.</span> {f.question}
-                          </h4>
-                          <p className="text-[12px] font-semibold text-text-secondary pl-5 leading-relaxed">
-                            <span className="opacity-40 font-black mr-2">ANS.</span> {f.answer}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Important Links Section */}
-                <div className="overflow-hidden border-2 border-red-primary rounded-lg shadow-sm text-[var(--text-primary)]">
-                  <div className="bg-red-primary text-white text-center py-2 font-bold uppercase text-sm">
-                    SOME USEFUL IMPORTANT LINKS
-                  </div>
-                  <table className="w-full text-[13px] text-center border-collapse">
-                    <tbody className="divide-y divide-red-primary font-extrabold uppercase">
-                       {(item.importantLinks && item.importantLinks.length > 0 ? item.importantLinks : [
-                         { label: 'Apply Online Link', url: '#' },
-                         { label: 'Download Official Notification', url: '#' },
-                         { label: 'Official Website', url: '#' }
-                       ]).map((link: any, i: number) => (
-                         <tr key={i} className="hover:bg-red-primary/5 transition-colors border-b border-red-primary/20">
-                           <td className="py-2.5 px-4 text-left border-r border-red-primary w-1/2 bg-yellow-50 dark:bg-yellow-950/20 font-bold text-blue-900 dark:text-blue-300">{link.label}</td>
-                           <td className="py-2.5 px-4 bg-white dark:bg-gray-900">
-                             {link.url.includes(',') ? (
-                               <div className="flex flex-wrap justify-center gap-x-2 gap-y-1">
-                                 {link.url.split(',').map((u: string, idx: number) => (
-                                   <React.Fragment key={idx}>
-                                      <a href={u.trim()} target="_blank" rel="noopener noreferrer" className="text-blue-700 dark:text-blue-400 hover:text-red-primary font-black">Link-{idx+1}</a>
-                                      {idx < link.url.split(',').length - 1 && <span className="text-gray-400">|</span>}
-                                   </React.Fragment>
-                                 ))}
-                               </div>
-                             ) : (
-                               <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 dark:text-blue-400 hover:text-red-primary font-black">Click Here</a>
-                             )}
-                           </td>
-                         </tr>
-                       ))}
-                    </tbody>
-                  </table>
+                {/* Categories Table */}
+                <div className="border border-[#000080] rounded overflow-hidden">
+                   <div className="bg-[#000080] text-white text-center py-1 font-bold uppercase text-[11px]">
+                     Category Name Vacancy Details
+                   </div>
+                   <table className="w-full text-center text-[11px] border-collapse bg-white dark:bg-gray-900">
+                     <thead className="bg-[#f0f0ff] dark:bg-blue-950/20 border-b border-[#000080]">
+                       <tr className="font-bold divide-x divide-[#000080]/30 uppercase">
+                         <th className="py-1">Category Name</th>
+                         <th className="py-1">No. Of Post</th>
+                       </tr>
+                     </thead>
+                     <tbody className="divide-y divide-[#000080]/10 font-bold uppercase">
+                        {(item.vacancyDetails || [
+                          { category: 'General', posts: '513' },
+                          { category: 'EWS', posts: '116' },
+                          { category: 'EBC', posts: '196' },
+                          { category: 'BC', posts: '140' },
+                          { category: 'SC', posts: '175' },
+                          { category: 'ST', posts: '10' }
+                        ]).map((v: any, i: number) => (
+                          <tr key={i} className="divide-x divide-[#000080]/10">
+                            <td className="py-1.5">{v.category}</td>
+                            <td className="py-1.5">{v.posts}</td>
+                          </tr>
+                        ))}
+                     </tbody>
+                   </table>
                 </div>
 
-                {/* Ad Slot (Post Mid) */}
-                <div className="bg-transparent text-center space-y-2">
-                  <ScriptAdBanner />
-                  <div className="flex justify-center gap-2">
-                    <ScriptAdBanner type="mobile" />
-                    <ScriptAdBanner type="mobile" />
+                {/* How to fill */}
+                <div className="space-y-4">
+                  <div className="bg-blue-900 text-white text-center py-1.5 rounded-t font-black uppercase text-[11px]">
+                    How To Fill {item.title} 2025 Online Form
                   </div>
+                  <div className="p-5 border border-blue-900 rounded-b bg-white dark:bg-gray-900 text-[13px] font-bold leading-[1.8] text-gray-800 dark:text-gray-200 uppercase">
+                      <ul className="space-y-3">
+                        <li className="flex items-start gap-2">• Interested Candidates Who Wish To Apply For The BPSC Post Can Submit Their Application Online Before 31 May 2026.</li>
+                        <li className="flex items-start gap-2">• Use The Click Here Link Provided Below Under Important Link Section To Apply Directly.</li>
+                        <li className="flex items-start gap-2">• Alternatively, Visit The Official Website Of BPSC To Complete The Application Process Online.</li>
+                        <li className="flex items-start gap-2">• Make Sure To Complete The Application Before The Deadline 31 May 2026.</li>
+                        <li className="flex items-start gap-2 text-red-600 font-black">• Note – छात्रों से ये अनुरोध किया जाता है की वो अपना फॉर्म भरने से पहले <span className="underline">Official Notification</span> को ध्यान से जरूर पढ़े उसके बाद ही अपना फॉर्म भरे।</li>
+                      </ul>
+                  </div>
+                </div>
+
+                {/* Important Links Table */}
+                <div className="border border-[#720e0e] rounded overflow-hidden">
+                   <div className="bg-[#720e0e] text-white text-center py-2 font-bold uppercase text-[13px]">
+                     SOME USEFUL IMPORTANT LINKS
+                   </div>
+                   <table className="w-full text-[12px] border-collapse bg-white dark:bg-gray-900">
+                     <tbody className="divide-y divide-[#720e0e]">
+                        {(item.importantLinks && item.importantLinks.length > 0 ? item.importantLinks : [
+                          { label: 'Apply Online Link', url: '#' },
+                          { label: 'Download Official Notification', url: '#' },
+                          { label: 'Check Syllabus & Exam Pattern', url: '#' },
+                          { label: 'Official Website', url: '#' }
+                        ]).map((link: any, i: number) => (
+                          <tr key={i} className="divide-x divide-[#720e0e] font-black uppercase">
+                            <td className="py-3 px-4 w-[60%] bg-[#fdf2f2] dark:bg-red-950/20 text-blue-900 dark:text-blue-300 text-left">
+                              {link.label}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {link.url.includes(',') ? (
+                                <div className="flex justify-center gap-2">
+                                  {link.url.split(',').map((u: string, idx: number) => (
+                                    <React.Fragment key={idx}>
+                                       <a href={u.trim()} target="_blank" rel="noopener noreferrer" className="text-blue-700 dark:text-blue-400 hover:underline">Link {idx + 1}</a>
+                                       {idx < link.url.split(',').length - 1 && <span>|</span>}
+                                    </React.Fragment>
+                                  ))}
+                                </div>
+                              ) : (
+                                <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 dark:text-blue-400 hover:underline">Click Here</a>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                     </tbody>
+                   </table>
                 </div>
 
                 {/* Detailed Long Article Section */}
@@ -1073,71 +982,61 @@ function ArticleDetail({ id, allData, onBack, onNavigateDetail, toggleBookmark, 
                     <div className="bg-[var(--card-bg)] p-6 rounded-xl border border-border-color shadow-sm whitespace-pre-wrap text-[14px] leading-8 font-medium text-[var(--text-primary)] font-serif">
                       {item.longArticle}
                     </div>
-                    
-                    {/* Another Ad Slot within the content for space filling */}
-                    <div className="my-6 border border-dashed border-gray-300 dark:border-gray-700 p-2 rounded">
-                       <ScriptAdBanner />
-                    </div>
                   </div>
                 )}
 
                 {/* FAQ Section */}
-                <div className="space-y-4 text-[var(--text-primary)]">
-                  <div className="bg-blue-900 text-white text-center py-2 rounded-t-lg font-bold uppercase text-sm">
-                    Frequently Asked Questions (FAQ)
-                  </div>
-                  <div className="border-x border-b border-blue-900 rounded-b-lg divide-y divide-gray-200 dark:divide-gray-800">
-                    {(item.faq || [
-                      { question: 'What is the last date to apply?', answer: 'The last date is 31st May 2026.' },
-                      { question: 'What is the required qualification?', answer: 'Check the education details in the notification above.' }
-                    ]).map((faq: any, i: number) => (
-                      <div key={i} className="p-4 space-y-2">
-                        <p className="font-bold text-[13px] flex gap-2">
-                          <span className="text-blue-link shrink-0">Question:</span> {faq.question}
-                        </p>
-                        <p className="font-medium text-[13px] flex gap-2 pl-4">
-                          <span className="text-red-primary shrink-0">Answer:</span> {faq.answer}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                <div className="border border-[#000080] rounded overflow-hidden">
+                   <div className="bg-[#000080] text-white text-center py-1.5 font-bold uppercase text-[11px]">
+                     {item.title} 2025 : Important Question (FAQ)
+                   </div>
+                   <div className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800 p-2 text-[var(--text-primary)]">
+                      {(item.faq || [
+                        { question: `When will the Online Application for ${item.title} 2025 start?`, answer: 'The Online Application For This Recruitment Has Started On 07 May 2026.' },
+                        { question: 'What is the Last Date for Online Application?', answer: 'The Last Date For Online Application Form Is 31 May 2026.' }
+                      ]).map((faq: any, i: number) => (
+                        <div key={i} className="py-3 px-2 space-y-1 uppercase">
+                           <p className="text-[12px] font-bold">
+                             <span className="font-black">• Question: </span> {faq.question}
+                           </p>
+                           <p className="text-[12px] font-bold text-gray-700 dark:text-gray-400 opacity-80">
+                             <span className="font-black">• Answer: </span> {faq.answer}
+                           </p>
+                        </div>
+                      ))}
+                   </div>
                 </div>
             </div>
 
-            {/* Social Share Bottom */}
-            <div className="pt-8 border-t border-border-color flex flex-wrap justify-center gap-4">
-               <button onClick={copyLink} className="flex items-center gap-2 text-[11px] font-bold text-text-secondary hover:text-red-primary border border-border-color px-4 py-2 rounded-full transition-all">
-                 <Copy size={14} /> Copy Post Link
-               </button>
-               <button onClick={() => shareWhatsApp(item.title)} className="flex items-center gap-2 text-[11px] font-bold text-[#25D366] border border-[#25D366]/30 px-4 py-2 rounded-full hover:bg-[#25D366]/5 transition-all">
-                 <Share2 size={14} /> WhatsApp Share
-               </button>
+            {/* Bottom App Link */}
+            <div className="mt-10 py-5 border-t border-gray-100 flex flex-col items-center gap-4 text-center">
+               <a href="https://t.me/CareerSetu76" target="_blank" rel="noopener noreferrer" className="text-red-700 font-bold underline text-[13px] animate-bounce">Download SarkariResult App Now</a>
+               <div className="flex gap-4">
+                  <button onClick={() => shareWhatsApp(item.title)} className="bg-[#25D366] text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase">WhatsApp</button>
+                  <button onClick={() => shareTelegram(item.title)} className="bg-[#0088CC] text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase">Telegram</button>
+                  <button onClick={copyLink} className="bg-gray-400 text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase">Copy Link</button>
+               </div>
             </div>
         </div>
-      </article>
+      </div>
 
-      {/* Related Posts */}
-      <div className="space-y-4 pt-6">
-          <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-            🔗 RELATED POSTS / संबंधित पोस्ट
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {related.map((post: any) => (
-              <div 
-                key={post.id} 
-                onClick={() => onNavigateDetail(post.id)}
-                className="bg-[var(--card-bg)] border border-border-color rounded-lg p-3 hover:shadow-md cursor-pointer transition-all flex items-start gap-3 group"
-              >
-                <div className="w-1.5 h-full bg-red-primary rounded-full shrink-0 group-hover:scale-y-125 transition-transform" />
-                <div>
-                  <h4 className="text-[12px] font-bold text-blue-link group-hover:text-red-primary line-clamp-2 leading-tight transition-colors">
-                    {post.title}
-                  </h4>
-                  <p className="text-[10px] text-text-secondary mt-1 font-medium">{post.date}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* RELATED POSTS section - sibling to card main content */}
+      <div className="p-4 md:p-6 border-t border-gray-100 bg-gray-50/30">
+        <h3 className="text-[11px] font-black uppercase text-blue-900 border-b-2 border-blue-900 pb-1 mb-4">
+           🔗 RELATED POSTS
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {related.map((post: any) => (
+            <button 
+              key={post.id} 
+              onClick={() => onNavigateDetail(post.id)}
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded p-3 text-left font-bold hover:border-blue-700 transition-all shadow-sm group"
+            >
+               <div className="text-[11px] text-blue-link group-hover:text-red-primary line-clamp-2 leading-tight uppercase transition-colors">{post.title}</div>
+               <div className="text-[9px] text-gray-400 mt-2 font-black italic">{post.date}</div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
