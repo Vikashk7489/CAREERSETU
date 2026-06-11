@@ -1,13 +1,296 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CareerSetu - सरकारी नौकरी, रिजल्ट, एडमिट कार्ड 2025-26</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareerSetu - Your Job Update Portal</title>
+    <meta name="description" content="CareerSetu - Complete Job Update Portal with Latest Jobs, Results, Admit Cards, and Government Schemes">
+    <meta name="keywords" content="Jobs, Results, Admit Cards, Government Jobs, Scholarships">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header-top bg-dark text-white py-2 sticky-top" style="background-color: #0F172A !important;">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <div class="logo">
+                        <h2 class="mb-0"><i class="fas fa-briefcase"></i> CareerSetu</h2>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="search-box">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search Jobs, Results, Admit Cards..." style="border-radius: 20px;">
+                        <button class="btn btn-danger" id="searchBtn" style="margin-left: -40px; border-radius: 20px;"><i class="fas fa-search"></i></button>
+                    </div>
+                </div>
+                <div class="col-md-3 text-end">
+                    <a href="admin/login.html" class="btn btn-sm btn-danger">Admin Login</a>
+                    <button class="btn btn-light ms-2" id="mobileMenuToggle"><i class="fas fa-bars"></i></button>
+                </div>
+            </div>
+        </div>
+    </header>
 
+    <!-- Breaking News Ticker -->
+    <div class="breaking-news bg-danger text-white py-2">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <span class="badge badge-danger" style="background-color: #DC2626 !important;">BREAKING</span>
+                </div>
+                <div class="col">
+                    <div class="ticker" id="breakingNewsTicker">Loading breaking news...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #1e293b;">
+        <div class="container-fluid">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/latest-jobs.html">Latest Jobs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/results.html">Results</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/admit-cards.html">Admit Cards</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/answer-keys.html">Answer Keys</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/admissions.html">Admissions</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/scholarships.html">Scholarships</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/schemes.html">Schemes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/documents.html">Documents</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/contact.html">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Slider -->
+    <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <div class="hero-slide" style="background: linear-gradient(135deg, #0F172A 0%, #1e293b 100%);">
+                    <div class="hero-content text-white text-center">
+                        <h1>Your Job Update Portal</h1>
+                        <p class="lead">Latest Jobs, Results, Admit Cards & Government Schemes at One Place</p>
+                        <a href="pages/latest-jobs.html" class="btn btn-danger btn-lg">Explore Jobs</a>
+                    </div>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="hero-slide" style="background: linear-gradient(135deg, #1e293b 0%, #0F172A 100%);">
+                    <div class="hero-content text-white text-center">
+                        <h1>Results & Admit Cards</h1>
+                        <p class="lead">Check your exam results and download admit cards instantly</p>
+                        <a href="pages/results.html" class="btn btn-danger btn-lg">Check Results</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+
+    <!-- Quick Access Cards -->
+    <section class="quick-access py-5" style="background-color: #f8f9fa;">
+        <div class="container">
+            <h2 class="mb-4 text-center">Quick Access</h2>
+            <div class="row g-3">
+                <div class="col-md-3 col-sm-6">
+                    <div class="quick-card text-center p-4" style="background: #0F172A; color: white; border-radius: 10px;">
+                        <i class="fas fa-briefcase fa-2x mb-3" style="color: #DC2626;"></i>
+                        <h5>Latest Jobs</h5>
+                        <p class="mb-0">Find your dream job</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="quick-card text-center p-4" style="background: #0F172A; color: white; border-radius: 10px;">
+                        <i class="fas fa-file-alt fa-2x mb-3" style="color: #DC2626;"></i>
+                        <h5>Results</h5>
+                        <p class="mb-0">Check exam results</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="quick-card text-center p-4" style="background: #0F172A; color: white; border-radius: 10px;">
+                        <i class="fas fa-ticket-alt fa-2x mb-3" style="color: #DC2626;"></i>
+                        <h5>Admit Cards</h5>
+                        <p class="mb-0">Download admit cards</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="quick-card text-center p-4" style="background: #0F172A; color: white; border-radius: 10px;">
+                        <i class="fas fa-graduation-cap fa-2x mb-3" style="color: #DC2626;"></i>
+                        <h5>Scholarships</h5>
+                        <p class="mb-0">Apply for scholarships</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Latest Jobs Section -->
+    <section class="latest-jobs py-5">
+        <div class="container">
+            <h2 class="mb-4">Latest Jobs</h2>
+            <div class="row" id="latestJobsContainer">
+                <div class="col-12 text-center">
+                    <p>Loading jobs...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section py-5" style="background-color: #f8f9fa;">
+        <div class="container">
+            <h2 class="mb-4">Latest Results</h2>
+            <div class="row" id="resultsContainer">
+                <div class="col-12 text-center">
+                    <p>Loading results...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trending Section -->
+    <section class="trending-section py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8">
+                    <h2 class="mb-4">Trending Posts</h2>
+                    <div id="trendingPostsContainer">
+                        <p>Loading trending posts...</p>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <h3 class="mb-4">Popular Categories</h3>
+                    <div class="list-group" id="categoriesContainer">
+                        <a href="#" class="list-group-item list-group-item-action">Loading categories...</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section py-5" style="background-color: #f8f9fa;">
+        <div class="container">
+            <h2 class="mb-4 text-center">Frequently Asked Questions</h2>
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            How do I apply for a job?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Simply browse our job listings, click "Apply Now", and follow the application process on the official website. Make sure you meet all eligibility criteria.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            How can I check my exam results?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Go to the "Results" section, select the exam board and enter your roll number. Your results will appear immediately.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            Where do I download admit cards?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Visit the "Admit Cards" section, select your exam, and download your admit card using your registration number.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Advertisement Area -->
+    <div class="advertisement py-4" style="background-color: #0F172A;">
+        <div class="container text-center">
+            <div id="headerAds">Advertisement Space Available</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer py-5" style="background-color: #0F172A; color: white;">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <h5>About CareerSetu</h5>
+                    <p>Your complete job update portal providing latest jobs, results, admit cards, and government schemes.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white text-decoration-none">Home</a></li>
+                        <li><a href="pages/contact.html" class="text-white text-decoration-none">Contact Us</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Privacy Policy</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Important Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white text-decoration-none">Disclaimer</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Government Schemes</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Scholarships</a></li>
+                        <li><a href="#" class="text-white text-decoration-none">Documents</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Follow Us</h5>
+                    <div class="social-links">
+                        <a href="#" class="text-danger me-2"><i class="fab fa-whatsapp fa-lg"></i></a>
+                        <a href="#" class="text-danger me-2"><i class="fab fa-telegram fa-lg"></i></a>
+                        <a href="#" class="text-danger me-2"><i class="fab fa-facebook fa-lg"></i></a>
+                        <a href="#" class="text-danger me-2"><i class="fab fa-instagram fa-lg"></i></a>
+                        <a href="#" class="text-danger me-2"><i class="fab fa-youtube fa-lg"></i></a>
+                        <a href="#" class="text-danger me-2"><i class="fab fa-twitter fa-lg"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="bg-secondary">
+            <div class="text-center mt-3">
+                <p>&copy; 2024 CareerSetu. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.5.0/firebase-storage.js"></script>
+    <!-- Custom JS -->
+    <script src="js/config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
